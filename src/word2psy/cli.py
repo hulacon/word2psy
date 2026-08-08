@@ -36,6 +36,9 @@ Examples
     word2psy viz scatter features.csv --features "sensorimotor_*" -o scatter.png
     word2psy viz browse features.csv -o viewer.html --open
     word2psy viz recommend features.csv
+
+    # Text x image similarity against a viz2psy CSV (shared CLIP space)
+    word2psy crossmodal text_scores.csv image_scores.csv -o similarity.csv
 """
 
 import argparse
@@ -262,6 +265,71 @@ def _viz_browse(args):
         webbrowser.open(f"file://{output.absolute()}")
 
 
+def _crossmodal_main(argv: list[str]):
+    """Handle 'word2psy crossmodal ...'."""
+    parser = argparse.ArgumentParser(
+        prog="word2psy crossmodal",
+        description=(
+            "Cosine similarity between word2psy clip_text embeddings and "
+            "viz2psy clip image embeddings (shared ViT-B-32 space)."
+        ),
+    )
+    parser.add_argument(
+        "text_csv",
+        type=Path,
+        help="word2psy scores path (base or *_chunks.csv) with clip_text features.",
+    )
+    parser.add_argument(
+        "image_csv",
+        type=Path,
+        help="viz2psy scores CSV with clip features.",
+    )
+    parser.add_argument(
+        "-o", "--output", type=Path, help="Save similarity matrix CSV here."
+    )
+    parser.add_argument(
+        "--top-k",
+        type=int,
+        default=3,
+        help="Print the top-k images per text chunk (default: 3).",
+    )
+    args = parser.parse_args(argv)
+
+    import pandas as pd
+
+    from word2psy.crossmodal import cross_modal_similarity, top_matches
+
+    _, chunks_path = resolve_scores_paths(args.text_csv)
+    if chunks_path is None:
+        # Allow passing an arbitrary CSV that itself has clip_text columns
+        chunks_path = args.text_csv
+    if not chunks_path.exists():
+        print(f"Error: {chunks_path} not found.", file=sys.stderr)
+        sys.exit(1)
+    if not args.image_csv.exists():
+        print(f"Error: {args.image_csv} not found.", file=sys.stderr)
+        sys.exit(1)
+
+    text_df = pd.read_csv(chunks_path)
+    image_df = pd.read_csv(args.image_csv)
+
+    try:
+        sim = cross_modal_similarity(text_df, image_df)
+    except ValueError as e:
+        print(f"Error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    print(
+        f"Similarity matrix: {sim.shape[0]} text chunks x "
+        f"{sim.shape[1]} images\n"
+    )
+    print(top_matches(sim, k=args.top_k).to_string(index=False))
+
+    if args.output:
+        sim.to_csv(args.output, float_format="%.6g")
+        print(f"\nSaved similarity matrix to {args.output}")
+
+
 def _viz_main(argv: list[str]):
     """Handle 'word2psy viz ...' subcommands."""
     parser = argparse.ArgumentParser(
@@ -419,9 +487,12 @@ def _viz_main(argv: list[str]):
 
 
 def main():
-    # Route 'viz' subcommand
+    # Route 'viz' / 'crossmodal' subcommands
     if len(sys.argv) > 1 and sys.argv[1] == "viz":
         _viz_main(sys.argv[2:])
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == "crossmodal":
+        _crossmodal_main(sys.argv[2:])
         return
 
     parser = argparse.ArgumentParser(

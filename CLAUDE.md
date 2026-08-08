@@ -48,6 +48,12 @@ matching change in viz2psy.
   (embeddings flat).
 - **`metadata.py`** — builds the `.json` sidecar documenting inputs, models, features,
   timing, and device.
+- **`crossmodal.py`** — text × image cosine similarity in the shared CLIP space:
+  joins a word2psy chunks CSV (`clip_text_###`) with a viz2psy CSV (`clip_###`;
+  the regexes keep the two schemes apart even in a combined frame), re-L2-normalizes
+  defensively, returns a labeled DataFrame. CLI: `word2psy crossmodal text.csv
+  image.csv -o sim.csv --top-k N` (text path goes through the same
+  `resolve_scores_paths` as `viz browse`).
 - **`norms/`** — the lexical-norms subsystem:
   - `download.py` fetches 5 public norm databases (Brysbaert concreteness, NRC VAD,
     Kuperman AoA, Glasgow imageability, Lancaster sensorimotor) and caches them as
@@ -137,7 +143,7 @@ assuming a code bug.
 ## Known gaps (as of Aug 2026)
 
 - Verified working as of Aug 2026: editable install on Python 3.11; full test suite
-  (137 tests); all seven norm-database downloads incl. parsing sanity checks; all 10
+  (147 tests); all seven norm-database downloads incl. parsing sanity checks; all 10
   models run end-to-end through the CLI in one `--all` invocation (43 s, ~5.7 GB peak
   RSS; words CSV 635 cols, chunks CSV 937 cols on a 2-sentence test), with strong
   face validity across norms, surprisal, OLD20, emotion, and sentiment.
@@ -162,8 +168,16 @@ Ordered; items become "next up" as their predecessors land.
    ported from viz2psy: the animated trajectory (payload cost, low value for text)
    and the separate popup viewer window (the detail view is an in-page overlay
    instead).
-3. **Cross-modal demo**: cosine similarity between word2psy `clip_text` embeddings and
-   viz2psy image embeddings in the shared space; becomes the flagship README example.
+3. **Cross-modal demo** (done Aug 2026 — `word2psy crossmodal`, see `crossmodal.py`
+   above; per Ben, deliberately NOT the flagship README example, just a short
+   section). Validated end-to-end with the real viz2psy CLI: 6 PIL-drawn icon
+   images (heart/tree/car/house/sun/fish) scored with `viz2psy clip`, the 6
+   matching words with `word2psy clip_text` — all 6 words ranked their matching
+   image first (match sims .29–.34 vs non-match ≤ .25). Note: viz2psy is not
+   installable from PyPI (its `deepgaze-pytorch` dep is GitHub-only); its venv
+   at ../viz2psy/.venv was built by installing deps minus deepgaze, then
+   `uv pip install -e . --no-deps` (+ plotly/kaleido) — saliency won't run
+   there but everything else does.
 4. **Model expansion** (done Aug 2026 — 10 models; the model space is considered
    feature-complete for dashboard design). Deliberately deferred: topics, NER, moral
    foundations, LIWC-style categories, GloVe. Note for dashboard: all current model

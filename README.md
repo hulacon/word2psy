@@ -127,6 +127,22 @@ The two tables join on `chunk_idx`. A wordlist CSV scored with `--text-column`
 makes each word its own chunk, so `features_chunks.csv` becomes a per-word table
 with CLIP embeddings — ready for cross-modal comparison with viz2psy output.
 
+## Cross-modal similarity with viz2psy
+
+`clip_text` shares its checkpoint with viz2psy's `clip` image model, so text and
+image embeddings live in one 512-d space. `word2psy crossmodal` joins the two
+tools' CSVs into a text × image cosine-similarity matrix:
+
+```bash
+viz2psy clip images/*.png -o image_scores.csv          # in viz2psy
+word2psy clip_text words.csv --text-column word -o text_scores.csv
+word2psy crossmodal text_scores.csv image_scores.csv -o similarity.csv
+```
+
+It prints the top-k images per text chunk and saves the full matrix. Raw CLIP
+text–image similarities sit in a narrow band (matches ≈ 0.25–0.35); relative
+comparisons within your stimulus set are what carry signal.
+
 ## Norm Sources
 
 The `lexical_norms` model is trained on these published databases (please cite the
