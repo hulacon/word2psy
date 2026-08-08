@@ -7,6 +7,7 @@ Examples
     word2psy --list-models
 
     # Score text with lexical norms
+    # (writes features_words.csv, features_chunks.csv, features.meta.json)
     word2psy lexical_norms input.txt -o features.csv
 
     # Score with CLIP text embeddings
@@ -14,6 +15,11 @@ Examples
 
     # Multiple models
     word2psy clip_text lexical_norms input.txt -o features.csv
+
+    # Score a CSV stimulus list: each row is one chunk; other columns
+    # (IDs, conditions) pass through to the chunks output
+    word2psy clip_text lexical_norms stimuli.csv --text-column word \
+        --id-column stim_id -o features.csv
 
     # All models
     word2psy --all input.txt -o features.csv
@@ -92,6 +98,56 @@ def _read_text(input_path: Path) -> str:
         return input_path.read_text(encoding="utf-8")
     except Exception as e:
         raise TextLoadError(input_path, str(e)) from e
+
+
+TABULAR_SUFFIXES = {".csv": ",", ".tsv": "\t"}
+
+
+def read_inputs(
+    inputs: list[Path],
+    text_column: str | None = None,
+    id_column: str | None = None,
+):
+    """Read input files into (text, chunk_labels, passthrough).
+
+    Plain text files: each file is one chunk; returns (str | list[str],
+    None, None). CSV/TSV: a single tabular file where each row is one
+    chunk; ``text_column`` selects the text, ``id_column`` (optional)
+    provides chunk labels, and all other columns are returned as a
+    passthrough DataFrame carried into the chunks output.
+    """
+    tabular = [p for p in inputs if p.suffix.lower() in TABULAR_SUFFIXES]
+
+    if not tabular:
+        parts = [_read_text(p) for p in inputs]
+        return (parts if len(parts) > 1 else parts[0]), None, None
+
+    if len(inputs) > 1:
+        raise TextLoadError(
+            tabular[0], "CSV/TSV input must be a single file (got multiple inputs)"
+        )
+    path = tabular[0]
+    if not text_column:
+        raise TextLoadError(path, "--text-column is required for CSV/TSV input")
+
+    import pandas as pd
+
+    try:
+        df = pd.read_csv(path, sep=TABULAR_SUFFIXES[path.suffix.lower()])
+    except Exception as e:
+        raise TextLoadError(path, str(e)) from e
+
+    for col_arg, col in (("--text-column", text_column), ("--id-column", id_column)):
+        if col is not None and col not in df.columns:
+            raise TextLoadError(
+                path,
+                f"{col_arg} {col!r} not found; available columns: {list(df.columns)}",
+            )
+
+    text = df[text_column].astype(str).tolist()
+    labels = df[id_column].astype(str).tolist() if id_column else None
+    passthrough = df.drop(columns=[text_column])
+    return text, labels, passthrough
 
 
 def _parse_figsize(value: str) -> tuple[int, int]:
@@ -243,6 +299,7 @@ def main():
             "Examples:\n"
             "  word2psy lexical_norms input.txt -o features.csv\n"
             "  word2psy clip_text lexical_norms input.txt -o features.csv\n"
+            "  word2psy clip_text stimuli.csv --text-column word -o features.csv\n"
             "  word2psy --all input.txt -o features.csv\n"
             "  echo 'hello world' | word2psy lexical_norms\n"
             "  word2psy --list-models\n"
@@ -301,6 +358,14 @@ def main():
         action="store_true",
         help="Keep punctuation tokens in the word table.",
     )
+    parser.add_argument(
+        "--text-column",
+        help="For CSV/TSV input: column containing the text (each row = one chunk).",
+    )
+    parser.add_argument(
+        "--id-column",
+        help="For CSV/TSV input: column to use as chunk labels.",
+    )
 
     args = parser.parse_args()
 
@@ -342,11 +407,12 @@ def main():
         sys.exit(1)
 
     # Read input text
+    chunk_labels = None
+    passthrough = None
     if inputs:
-        text_parts = []
-        for p in inputs:
-            text_parts.append(_read_text(p))
-        text = text_parts if len(text_parts) > 1 else text_parts[0]
+        text, chunk_labels, passthrough = read_inputs(
+            inputs, text_column=args.text_column, id_column=args.id_column
+        )
     elif not sys.stdin.isatty():
         text = sys.stdin.read()
         if not text.strip():
@@ -358,7 +424,7 @@ def main():
 
     # Instantiate models
     from word2psy.metadata import MetadataBuilder
-    from word2psy.pipeline import save_embeddings, score_text
+    from word2psy.pipeline import score_text
 
     model_instances = []
     for model_name in models:
@@ -368,9 +434,11 @@ def main():
 
     try:
         start = time.time()
-        df, embeddings = score_text(
+        words_df, chunks_df = score_text(
             text,
             model_instances,
+            chunk_labels=chunk_labels,
+            passthrough=passthrough,
             batch_size=args.batch_size,
             quiet=args.quiet,
             keep_punctuation=args.keep_punctuation,
@@ -378,58 +446,60 @@ def main():
         total_time = time.time() - start
 
         if args.output:
-            df.to_csv(args.output, index=False)
+            stem = args.output.with_suffix("")
+            words_path = stem.parent / f"{stem.name}_words.csv"
+            chunks_path = stem.parent / f"{stem.name}_chunks.csv"
 
-            # Save embeddings if any
-            if embeddings:
-                h5_path = save_embeddings(embeddings, args.output, df)
-                if not args.quiet:
-                    print(f"Embeddings saved to {h5_path}")
+            words_df.to_csv(words_path, index=False, float_format="%.6g")
+            chunks_df.to_csv(chunks_path, index=False, float_format="%.6g")
 
             # Save metadata sidecar
             metadata = MetadataBuilder()
-            chunks = [text] if isinstance(text, str) else list(text)
             metadata.set_input_text(
                 path=inputs[0] if inputs else None,
-                n_words=len(df),
-                n_chunks=df["chunk_idx"].nunique(),
-                n_sentences=df["sentence_idx"].nunique(),
+                n_words=len(words_df),
+                n_chunks=len(chunks_df),
+                n_sentences=(
+                    words_df["sentence_idx"].nunique() if len(words_df) else 0
+                ),
             )
-            metadata.set_output(args.output, len(df), len(df.columns))
+            metadata.set_output(
+                "words", words_path, len(words_df), len(words_df.columns)
+            )
+            metadata.set_output(
+                "chunks", chunks_path, len(chunks_df), len(chunks_df.columns)
+            )
             if model_instances:
                 metadata.set_device(str(model_instances[0].device))
 
             for m in model_instances:
-                feat_names = [
-                    c
-                    for c in df.columns
-                    if c
-                    not in (
-                        "word_idx",
-                        "word",
-                        "sentence_idx",
-                        "chunk_idx",
-                        "chunk_label",
-                        "onset",
-                        "offset",
-                    )
-                ]
-                if m.level == "chunk" and m.name in embeddings:
-                    dim = embeddings[m.name].shape[1]
-                    feat_names = [f"{m.name}_{i:03d}" for i in range(dim)]
-                elif m.level == "word":
-                    from word2psy.norms.train import NORM_DIMENSIONS
-
-                    feat_names = list(NORM_DIMENSIONS.keys()) + ["zipf_frequency"]
-                metadata.add_model(m.name, feat_names, total_time / len(models))
+                metadata.add_model(
+                    m.name,
+                    getattr(m, "feature_names_", []),
+                    total_time / len(models),
+                )
 
             meta_path = metadata.save(args.output)
 
             if not args.quiet:
-                print(f"Saved {len(df)} rows to {args.output}")
+                print(f"Saved {len(words_df)} word rows to {words_path}")
+                print(f"Saved {len(chunks_df)} chunk rows to {chunks_path}")
                 print(f"Metadata saved to {meta_path}")
         else:
-            print(df.to_string(index=False))
+            print(words_df.to_string(index=False))
+            chunk_feature_cols = [
+                c
+                for c in chunks_df.columns
+                if c not in ("chunk_idx", "chunk_label", "n_words")
+                and (passthrough is None or c not in passthrough.columns)
+            ]
+            if chunk_feature_cols:
+                print(
+                    f"\n[{len(chunks_df)} chunks x {len(chunk_feature_cols)} "
+                    "chunk-level features computed - use -o to save the chunks "
+                    "table]",
+                    file=sys.stderr,
+                )
 
     except DeviceError as e:
         print(f"Error: {e}", file=sys.stderr)

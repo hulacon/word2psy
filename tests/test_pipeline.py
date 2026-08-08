@@ -3,7 +3,6 @@
 These tests require all models and norm data to be available.
 """
 
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -22,56 +21,62 @@ def models():
 
 class TestPipelineBasic:
     def test_single_string_input(self, models):
-        df, emb = score_text("The dog chased the cat.", models, quiet=True)
-        assert isinstance(df, pd.DataFrame)
-        assert "word" in df.columns
-        assert "concreteness" in df.columns
-        assert len(df) > 0
+        words_df, chunks_df = score_text("The dog chased the cat.", models, quiet=True)
+        assert isinstance(words_df, pd.DataFrame)
+        assert "word" in words_df.columns
+        assert "concreteness" in words_df.columns
+        assert len(words_df) > 0
 
-    def test_embeddings_returned(self, models):
-        df, emb = score_text("Hello world.", models, quiet=True)
-        assert "clip_text" in emb
-        arr = emb["clip_text"]
-        assert arr.shape == (1, 512)  # 1 chunk, 512-d
+    def test_chunk_embeddings_in_chunks_df(self, models):
+        words_df, chunks_df = score_text("Hello world.", models, quiet=True)
+        emb_cols = [c for c in chunks_df.columns if c.startswith("clip_text_")]
+        assert len(emb_cols) == 512
+        assert len(chunks_df) == 1
 
     def test_multi_chunk_input(self, models):
         chunks = ["First sentence here.", "Second sentence there."]
-        df, emb = score_text(chunks, models, quiet=True)
-        assert df["chunk_idx"].nunique() == 2
-        assert emb["clip_text"].shape[0] == 2
+        words_df, chunks_df = score_text(chunks, models, quiet=True)
+        assert words_df["chunk_idx"].nunique() == 2
+        assert len(chunks_df) == 2
+        assert list(chunks_df["chunk_idx"]) == [0, 1]
 
     def test_word_features_vary_per_word(self, models):
-        df, _ = score_text("The enormous tiny cat.", models, quiet=True)
+        words_df, _ = score_text("The enormous tiny cat.", models, quiet=True)
         # Different words should generally have different concreteness
-        conc = df["concreteness"].tolist()
+        conc = words_df["concreteness"].tolist()
         assert len(set(conc)) > 1  # Not all identical
 
     def test_output_has_correct_structure(self, models):
-        df, _ = score_text("A simple test.", models, quiet=True)
-        required_cols = [
-            "word_idx",
-            "word",
-            "sentence_idx",
-            "chunk_idx",
-            "chunk_label",
-        ]
-        for col in required_cols:
-            assert col in df.columns
+        words_df, chunks_df = score_text("A simple test.", models, quiet=True)
+        for col in ["word_idx", "word", "sentence_idx", "chunk_idx", "chunk_label"]:
+            assert col in words_df.columns
+        for col in ["chunk_idx", "chunk_label", "n_words"]:
+            assert col in chunks_df.columns
+        assert chunks_df["n_words"].iloc[0] == len(words_df)
+
+    def test_feature_names_recorded(self, models):
+        score_text("A simple test.", models, quiet=True)
+        for m in models:
+            assert len(m.feature_names_) > 0
 
 
 class TestPipelineWordOnly:
     def test_lexical_norms_only(self):
         norms = LexicalNormsModel(device="cpu")
-        df, emb = score_text("bright dark loud quiet", [norms], quiet=True)
-        assert "concreteness" in df.columns
-        assert "zipf_frequency" in df.columns
-        assert len(emb) == 0  # No chunk-level embeddings
+        words_df, chunks_df = score_text(
+            "bright dark loud quiet", [norms], quiet=True
+        )
+        assert "concreteness" in words_df.columns
+        assert "zipf_frequency" in words_df.columns
+        # No chunk-level features: chunks table has only index columns
+        assert list(chunks_df.columns) == ["chunk_idx", "chunk_label", "n_words"]
 
 
 class TestPipelineChunkOnly:
     def test_clip_only(self):
         clip = CLIPTextModel(device="cpu")
-        df, emb = score_text("A photo of a sunset.", [clip], quiet=True)
-        assert "clip_text" in emb
+        words_df, chunks_df = score_text("A photo of a sunset.", [clip], quiet=True)
+        emb_cols = [c for c in chunks_df.columns if c.startswith("clip_text_")]
+        assert len(emb_cols) == 512
         # No word-level features added (only index columns)
-        assert "concreteness" not in df.columns
+        assert "concreteness" not in words_df.columns

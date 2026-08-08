@@ -5,7 +5,7 @@ from text — the verbal-domain companion to
 [viz2psy](https://github.com/hulacon/viz2psy), which does the same for images and video
 frames. Text is scored through a unified command-line interface wrapping computational
 models from NLP and human psychology; results are stored as tabular CSV with metadata
-sidecars, plus HDF5 for embeddings.
+sidecars.
 
 A core design goal is **cross-modal comparability**: word2psy's CLIP text embeddings use
 the same OpenCLIP checkpoint as viz2psy's CLIP image embeddings (ViT-B-32,
@@ -14,10 +14,10 @@ space.
 
 ## Features
 
-- **Unified CLI** for scoring text files or stdin with one or more models
+- **Unified CLI** for scoring text files, CSV/TSV stimulus lists, or stdin
 - **Word-level psycholinguistic norms** extrapolated to arbitrary English words
 - **CLIP text embeddings** directly comparable to viz2psy image embeddings
-- **Tidy outputs**: word-per-row CSV, HDF5 embedding sidecar, JSON metadata sidecar
+- **Tidy outputs**: word-per-row CSV + chunk-per-row CSV + JSON metadata sidecar
 - **Built-in visualization**: timeseries, correlation heatmaps, and 2-D projections
 
 ## Installation
@@ -43,6 +43,11 @@ regressors are trained locally on first use (a few minutes, one time).
 # Score a text file with both models
 word2psy lexical_norms clip_text input.txt -o features.csv
 
+# Score a CSV stimulus list: each row is one chunk; other columns
+# (IDs, conditions) pass through to the chunks output
+word2psy clip_text lexical_norms stimuli.csv --text-column word \
+    --id-column stim_id -o features.csv
+
 # Score text from stdin (prints to stdout)
 echo "The quick brown fox" | word2psy lexical_norms
 
@@ -63,12 +68,12 @@ from word2psy import score_text
 from word2psy.models.lexical_norms import LexicalNormsModel
 from word2psy.models.clip_text import CLIPTextModel
 
-df, embeddings = score_text(
-    "I love this product. Terrible experience.",
+words_df, chunks_df = score_text(
+    ["I love this product.", "Terrible experience."],
     [LexicalNormsModel(), CLIPTextModel()],
 )
-# df: word-per-row DataFrame with norm columns
-# embeddings: {"clip_text": array of shape (n_chunks, 512)}
+# words_df: one row per word, with norm columns
+# chunks_df: one row per chunk, with clip_text_000...clip_text_511 columns
 ```
 
 ## Available Models
@@ -87,15 +92,22 @@ the roadmap in [CLAUDE.md](CLAUDE.md).
 
 ## Output Format
 
-For `word2psy <models> input.txt -o features.csv`:
+For `word2psy <models> input -o features.csv`, three files are written, mirroring
+viz2psy's one-row-per-stimulus CSV layout at each level of analysis:
 
-- **`features.csv`** — one row per word. Index columns `word_idx`, `word`,
+- **`features_words.csv`** — one row per word. Index columns `word_idx`, `word`,
   `sentence_idx`, `chunk_idx`, `chunk_label`, `onset`, `offset` (onset/offset reserved
   for time-aligned stimuli), followed by one column per word-level feature.
-- **`features.h5`** — chunk-level embeddings (`clip_text_embeddings`, shape
-  `(n_chunks, 512)`) plus a `chunk_index` mapping words to chunks.
-- **`features.meta.json`** — provenance sidecar: input stats, models, feature
-  definitions, versions, device, and runtime.
+- **`features_chunks.csv`** — one row per chunk: `chunk_idx`, `chunk_label`,
+  `n_words`, any passthrough columns from CSV input, then one column per chunk-level
+  feature — embeddings appear flat (`clip_text_000`...`clip_text_511`), exactly like a
+  viz2psy image CSV, so the two are directly comparable side by side.
+- **`features.meta.json`** — provenance sidecar: input stats, both output files,
+  models, feature definitions, versions, device, and runtime.
+
+The two tables join on `chunk_idx`. A wordlist CSV scored with `--text-column`
+makes each word its own chunk, so `features_chunks.csv` becomes a per-word table
+with CLIP embeddings — ready for cross-modal comparison with viz2psy output.
 
 ## Norm Sources
 

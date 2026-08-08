@@ -1,10 +1,14 @@
-"""Batch inference pipeline: tokenize text, run models, return scores."""
+"""Batch inference pipeline: tokenize text, run models, return scores.
+
+Produces two tables mirroring viz2psy's row-per-stimulus CSV layout:
+
+- a words table (one row per word token) holding word-level features, and
+- a chunks table (one row per chunk) holding chunk-level features,
+  including embeddings flat as columns.
+"""
 
 import time
-from pathlib import Path
 
-import h5py
-import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -18,10 +22,11 @@ def score_text(
     models: list[BaseModel],
     *,
     chunk_labels: list[str] | None = None,
+    passthrough: pd.DataFrame | None = None,
     keep_punctuation: bool = False,
     batch_size: int = 64,
     quiet: bool = False,
-) -> tuple[pd.DataFrame, dict[str, np.ndarray]]:
+) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Score text with one or more feature models.
 
     Parameters
@@ -32,6 +37,9 @@ def score_text(
         Instantiated (but not yet loaded) model wrappers.
     chunk_labels : list[str], optional
         Labels for each chunk.
+    passthrough : pd.DataFrame, optional
+        Extra per-chunk columns (e.g. stimulus IDs, conditions from a CSV
+        input) carried into the chunks table. Must have one row per chunk.
     keep_punctuation : bool
         If True, keep punctuation tokens in the word table.
     batch_size : int
@@ -41,17 +49,53 @@ def score_text(
 
     Returns
     -------
-    df : pd.DataFrame
-        Word-per-row table with index columns and all scalar features.
-    embeddings : dict[str, np.ndarray]
-        Mapping of model name to embedding arrays. Chunk-level embeddings
-        have shape ``(n_chunks, dim)``; not included in the CSV.
+    words_df : pd.DataFrame
+        Word-per-row table: index columns (word_idx, word, sentence_idx,
+        chunk_idx, chunk_label, onset, offset) plus one column per
+        word-level feature.
+    chunks_df : pd.DataFrame
+        Chunk-per-row table: chunk_idx, chunk_label, n_words, any
+        passthrough columns, plus one column per chunk-level feature
+        (embeddings appear flat, e.g. clip_text_000...clip_text_511).
+
+    Notes
+    -----
+    After scoring, each model instance carries a ``feature_names_``
+    attribute listing the columns it produced.
     """
     # Build the word-per-row table
-    df = tokenize_text(text, chunk_labels=chunk_labels, keep_punctuation=keep_punctuation)
+    words_df = tokenize_text(
+        text, chunk_labels=chunk_labels, keep_punctuation=keep_punctuation
+    )
     chunks = [text] if isinstance(text, str) else list(text)
 
-    embeddings: dict[str, np.ndarray] = {}
+    # Build the chunk-per-row table skeleton
+    if chunk_labels is None:
+        labels = [f"chunk_{i}" for i in range(len(chunks))]
+    else:
+        labels = [str(lab) for lab in chunk_labels]
+
+    words_per_chunk = (
+        words_df.groupby("chunk_idx").size() if len(words_df) else pd.Series(dtype=int)
+    )
+    chunks_df = pd.DataFrame(
+        {
+            "chunk_idx": range(len(chunks)),
+            "chunk_label": labels,
+            "n_words": [int(words_per_chunk.get(i, 0)) for i in range(len(chunks))],
+        }
+    )
+
+    if passthrough is not None:
+        if len(passthrough) != len(chunks):
+            raise ValueError(
+                f"passthrough has {len(passthrough)} rows but there are "
+                f"{len(chunks)} chunks"
+            )
+        pt = passthrough.reset_index(drop=True)
+        for col in pt.columns:
+            if col not in chunks_df.columns:
+                chunks_df[col] = pt[col].values
 
     for model in models:
         if not quiet:
@@ -64,13 +108,11 @@ def score_text(
         start_time = time.time()
 
         if model.level == "word":
-            _score_word_level(df, model, batch_size=batch_size, quiet=quiet)
+            _score_word_level(words_df, model, batch_size=batch_size, quiet=quiet)
         elif model.level == "chunk":
-            chunk_emb = _score_chunk_level(
-                df, chunks, model, batch_size=batch_size, quiet=quiet
+            _score_chunk_level(
+                chunks_df, chunks, model, batch_size=batch_size, quiet=quiet
             )
-            if chunk_emb is not None:
-                embeddings[model.name] = chunk_emb
         else:
             raise InferenceError(
                 model.name, f"Unknown model level: {model.level!r}"
@@ -80,33 +122,47 @@ def score_text(
         if not quiet:
             print(f"  {model.name} completed in {elapsed:.1f}s")
 
-    return df, embeddings
+    return words_df, chunks_df
 
 
-def _score_word_level(
-    df: pd.DataFrame,
+def _predict_in_batches(
+    items: list[str],
     model: BaseModel,
     *,
-    batch_size: int = 64,
-    quiet: bool = False,
-) -> None:
-    """Add word-level features to the DataFrame in-place."""
-    words = df["word"].tolist()
-    unique_words = list(dict.fromkeys(words))
-
-    # Predict in batches
+    batch_size: int,
+    quiet: bool,
+) -> list[dict[str, float]]:
+    """Run model.predict_batch over items, batched, with progress."""
     all_scores: list[dict[str, float]] = []
-    iterator = range(0, len(unique_words), batch_size)
+    iterator = range(0, len(items), batch_size)
     if not quiet:
         iterator = tqdm(iterator, desc=model.name)
 
     for batch_start in iterator:
-        batch = unique_words[batch_start : batch_start + batch_size]
+        batch = items[batch_start : batch_start + batch_size]
         try:
             scores = model.predict_batch(batch)
         except Exception as e:
             raise InferenceError(model.name, str(e)) from e
         all_scores.extend(scores)
+
+    return all_scores
+
+
+def _score_word_level(
+    words_df: pd.DataFrame,
+    model: BaseModel,
+    *,
+    batch_size: int = 64,
+    quiet: bool = False,
+) -> None:
+    """Add word-level features to the words DataFrame in-place."""
+    words = words_df["word"].tolist()
+    unique_words = list(dict.fromkeys(words))
+
+    all_scores = _predict_in_batches(
+        unique_words, model, batch_size=batch_size, quiet=quiet
+    )
 
     # Build lookup from unique word -> scores
     word_to_scores = dict(zip(unique_words, all_scores))
@@ -114,78 +170,31 @@ def _score_word_level(
     # Map back to DataFrame rows
     feature_names = list(all_scores[0].keys()) if all_scores else []
     for feat in feature_names:
-        df[feat] = [word_to_scores[w][feat] for w in words]
+        words_df[feat] = [word_to_scores[w][feat] for w in words]
+
+    model.feature_names_ = feature_names
 
 
 def _score_chunk_level(
-    df: pd.DataFrame,
+    chunks_df: pd.DataFrame,
     chunks: list[str],
     model: BaseModel,
     *,
     batch_size: int = 64,
     quiet: bool = False,
-) -> np.ndarray | None:
-    """Score chunks and return embedding array.
-
-    Returns shape ``(n_chunks, dim)`` or None if no chunks.
-    """
+) -> None:
+    """Add chunk-level features to the chunks DataFrame in-place."""
     if not chunks:
-        return None
+        model.feature_names_ = []
+        return
 
-    all_scores: list[dict[str, float]] = []
-    iterator = range(0, len(chunks), batch_size)
-    if not quiet:
-        iterator = tqdm(iterator, desc=model.name)
-
-    for batch_start in iterator:
-        batch = chunks[batch_start : batch_start + batch_size]
-        try:
-            scores = model.predict_batch(batch)
-        except Exception as e:
-            raise InferenceError(model.name, str(e)) from e
-        all_scores.extend(scores)
-
-    # Convert to numpy array
-    feature_names = sorted(all_scores[0].keys())
-    emb_array = np.array(
-        [[s[f] for f in feature_names] for s in all_scores], dtype=np.float32
+    all_scores = _predict_in_batches(
+        chunks, model, batch_size=batch_size, quiet=quiet
     )
 
-    return emb_array
+    # Preserve the model's own feature ordering (dict insertion order)
+    feature_names = list(all_scores[0].keys()) if all_scores else []
+    for feat in feature_names:
+        chunks_df[feat] = [s[feat] for s in all_scores]
 
-
-def save_embeddings(
-    embeddings: dict[str, np.ndarray],
-    output_path: str | Path,
-    df: pd.DataFrame,
-) -> Path:
-    """Save embedding arrays to HDF5 alongside the CSV.
-
-    Parameters
-    ----------
-    embeddings : dict[str, np.ndarray]
-        Model name -> array of shape ``(n_chunks, dim)``.
-    output_path : str or Path
-        Path to the CSV output file. HDF5 gets the same stem with ``.h5``.
-    df : pd.DataFrame
-        The word-per-row DataFrame (used to build chunk_index).
-
-    Returns
-    -------
-    Path to the saved HDF5 file.
-    """
-    h5_path = Path(output_path).with_suffix(".h5")
-
-    with h5py.File(h5_path, "w") as f:
-        # Write chunk_index: maps each word row to its chunk
-        f.create_dataset("chunk_index", data=df["chunk_idx"].values)
-
-        for model_name, arr in embeddings.items():
-            f.create_dataset(
-                f"{model_name}_embeddings",
-                data=arr,
-                compression="gzip",
-                compression_opts=4,
-            )
-
-    return h5_path
+    model.feature_names_ = feature_names

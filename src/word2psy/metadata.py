@@ -95,9 +95,9 @@ class MetadataBuilder:
         if path is not None:
             self.input_info["path"] = str(Path(path).resolve())
 
-    def set_output(self, path: Path, rows: int, columns: int) -> None:
-        """Set output info."""
-        self.output_info = {
+    def set_output(self, kind: str, path: Path, rows: int, columns: int) -> None:
+        """Record an output file under ``kind`` (e.g. "words", "chunks")."""
+        self.output_info[kind] = {
             "path": str(Path(path).resolve()),
             "rows": rows,
             "columns": columns,

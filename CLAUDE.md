@@ -30,10 +30,10 @@ matching change in viz2psy.
   `lexical_norms` (word-level, 17 psycholinguistic features).
 - **`tokenize.py`** — nltk (punkt) sentence + word tokenization into the word-per-row
   DataFrame. Punctuation tokens dropped by default (`--keep-punctuation` to keep).
-- **`pipeline.py`** — `score_text(text, models)` returns `(df, embeddings)`. Word-level
-  models append scalar columns to the DataFrame (deduplicated by unique word before
-  inference); chunk-level embedding models return arrays saved separately to HDF5 via
-  `save_embeddings()`.
+- **`pipeline.py`** — `score_text(text, models)` returns `(words_df, chunks_df)`.
+  Word-level models append columns to the words table (deduplicated by unique word
+  before inference); chunk-level models append columns to the chunks table
+  (embeddings flat).
 - **`metadata.py`** — builds the `.json` sidecar documenting inputs, models, features,
   timing, and device.
 - **`norms/`** — the lexical-norms subsystem:
@@ -59,16 +59,28 @@ matching change in viz2psy.
 
 ## Data structures (mirror viz2psy)
 
-- **Primary output**: word-per-row CSV. Index columns: `word_idx`, `word`,
+`-o scores.csv` produces three files (I/O v2, Aug 2026 — HDF5 was dropped in favor
+of viz2psy-style flat CSVs at each level):
+
+- **`scores_words.csv`** — one row per word token. Index columns: `word_idx`, `word`,
   `sentence_idx`, `chunk_idx`, `chunk_label`, `onset`, `offset` (onset/offset are
   reserved for time-aligned stimuli such as narration transcripts; NaN by default).
-  Feature columns are appended flat, one per scalar feature.
-- **Chunk embeddings**: `<output>.h5` sidecar with a `chunk_index` dataset plus one
-  `{model_name}_embeddings` dataset per embedding model (gzip-compressed float32).
-- **Metadata**: `<output>.json` sidecar.
+  Word-level feature columns appended flat.
+- **`scores_chunks.csv`** — one row per chunk: `chunk_idx`, `chunk_label`, `n_words`,
+  passthrough columns from tabular input, then chunk-level features flat —
+  embeddings included (`clip_text_000`…`511`). This file is the structural twin of a
+  viz2psy image CSV; cross-modal comparisons happen here. Joins to the words file on
+  `chunk_idx`.
+- **`scores.meta.json`** — provenance sidecar (both output files recorded).
+- **Input**: `.txt` files (each file = one chunk), stdin (one chunk), or a single
+  `.csv`/`.tsv` with `--text-column` (each row = one chunk; `--id-column` sets
+  `chunk_label`; all other columns pass through to the chunks file).
 - **Feature naming**: embeddings `"{model}_{i:03d}"` (e.g. `clip_text_000`); norms use
   plain names (`concreteness`, `valence`, …) and `sensorimotor_*` for Lancaster
   dimensions.
+- `score_text(text, models, ...)` returns `(words_df, chunks_df)`; after scoring,
+  each model instance exposes `feature_names_`. Chunk-level scalar models (future
+  sentiment etc.) need no special handling — their columns land in the chunks table.
 
 ## Cache and downloads
 
