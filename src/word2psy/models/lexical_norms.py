@@ -1,7 +1,7 @@
 """Lexical norms model — predicts psycholinguistic features for individual words.
 
-Uses fastText embeddings + Ridge regression for 16 norm dimensions, plus
-wordfreq for Zipf frequency.  All 17 features are word-level.
+Uses fastText embeddings + Ridge regression for 17 norm dimensions, plus
+wordfreq for Zipf frequency.  All 18 features are word-level.
 """
 
 import numpy as np

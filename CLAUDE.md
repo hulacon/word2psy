@@ -102,11 +102,8 @@ assuming a code bug.
   (56 tests); all five norm-database downloads incl. parsing sanity checks; both
   models run end-to-end through the CLI (CSV + HDF5 + metadata sidecars all
   well-formed; lexical_norms predictions show strong face validity).
-- `README.md` is aspirational and out of sync: it advertises models (sentiment,
-  emotion, readability, topics, liwc, ner, morality) that don't exist, a
-  `word2psy-viz` entry point that isn't defined, and Plotly dashboards (the viz layer
-  is matplotlib). Only `clip_text` and `lexical_norms` are implemented. Keep README
-  claims matched to `MODEL_REGISTRY`.
+- `README.md` was rewritten (Aug 2026) to match reality — keep its claims matched to
+  `MODEL_REGISTRY` as models are added.
 - Not published to PyPI. `pyproject.toml` URLs say `github.com/bhutch/word2psy`; the
   sibling project lives under `github.com/hulacon` — reconcile before publishing.
 
@@ -114,10 +111,9 @@ assuming a code bug.
 
 Ordered; items become "next up" as their predecessors land.
 
-1. **Phase 2 — first full end-to-end run** (done Aug 2026 except README): all caches
-   populated (CLIP, fastText, norms, trained regressors); both models validated
-   end-to-end via the CLI with strong face validity on a sample word list.
-   **Pending**: README rewrite to match reality (see Known gaps).
+1. **Phase 2 — first full end-to-end run** (done Aug 2026): all caches populated
+   (CLIP, fastText, norms, trained regressors); both models validated end-to-end via
+   the CLI with strong face validity on a sample word list; README rewritten.
 2. **Interactive HTML dashboard** (viz2psy parity — its `--browse` viewer is the
    reference). A `word2psy viz browse scores.csv -o viewer.html` style command emitting
    a self-contained interactive HTML file (Plotly or similar) for exploring scores:
