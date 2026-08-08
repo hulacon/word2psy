@@ -26,6 +26,11 @@ EXPECTED_FEATURES = [
     "sensorimotor_foot",
     "sensorimotor_head",
     "sensorimotor_torso",
+    "familiarity",
+    "semantic_size",
+    "gender_association",
+    "socialness",
+    "body_object_interaction",
     "zipf_frequency",
 ]
 
