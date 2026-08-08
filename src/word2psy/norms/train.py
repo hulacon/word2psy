@@ -126,7 +126,11 @@ def _build_training_data(
     """Build X (embeddings) and y (scores) arrays from a norm DataFrame.
 
     Returns (X, y, words) where rows with zero vectors are excluded.
+    Multi-word entries (e.g. "baking soda" in the Brysbaert and Lancaster
+    lists) are dropped: this is a word-level model, and fastText treats such
+    strings as a single junk token.
     """
+    norm_df = norm_df[~norm_df["word"].str.contains(r"\s", regex=True)]
     words = norm_df["word"].tolist()
     scores = norm_df.iloc[:, 1].values.astype(np.float64)
 
@@ -185,9 +189,13 @@ def train_single_norm(
     model = RidgeCV(alphas=[0.01, 0.1, 1.0, 10.0, 100.0, 1000.0])
     model.fit(X, y)
 
-    # Report cross-validated performance
+    # Report cross-validated performance. Norm files are often ordered
+    # (alphabetical, or single words then compounds), so folds must be shuffled.
     if not quiet:
-        scores = cross_val_score(model, X, y, cv=5, scoring="r2")
+        from sklearn.model_selection import KFold
+
+        cv = KFold(n_splits=5, shuffle=True, random_state=0)
+        scores = cross_val_score(model, X, y, cv=cv, scoring="r2")
         print(f"CV r2 = {scores.mean():.3f} (+/- {scores.std():.3f})")
 
     joblib.dump(model, out_path)
