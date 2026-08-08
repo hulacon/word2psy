@@ -124,7 +124,23 @@ class TestFeatureConfig:
         cfg = FEATURE_CONFIGS["lexical_norms"]
         assert cfg.timeseries is True
         assert cfg.mds_clustering is True
-        assert cfg.n_dims == 18
+        assert cfg.n_dims == 23
+        assert cfg.level == "word"
+
+    def test_all_registry_models_have_configs(self):
+        from word2psy.cli import MODEL_REGISTRY
+
+        assert set(FEATURE_CONFIGS) == set(MODEL_REGISTRY)
+
+    def test_level_detection(self):
+        detected = detect_models_in_dataframe(
+            ["concreteness", "sentiment_positive"], level="word"
+        )
+        assert detected == ["lexical_norms"]
+        detected = detect_models_in_dataframe(
+            ["concreteness", "sentiment_positive"], level="chunk"
+        )
+        assert detected == ["sentiment"]
 
     def test_clip_text_config(self):
         cfg = FEATURE_CONFIGS["clip_text"]

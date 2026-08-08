@@ -64,7 +64,17 @@ matching change in viz2psy.
     embedding→norm extrapolation results.
 - **`viz/`** — matplotlib/seaborn plots: `timeseries`, `heatmap` (feature correlations),
   `scatter` (PCA/PPCA/UMAP/t-SNE/MDS projections), plus `feature_config.py` which
-  detects which models produced a CSV's columns and recommends visualizations.
+  detects which models produced a CSV's columns (all 10 models, with word/chunk
+  `level` awareness) and recommends visualizations. `dashboard.py` builds the
+  `viz browse` interactive HTML dashboard: projections and per-row data are
+  precomputed in Python and embedded as JSON into a self-contained HTML template
+  (Plotly.js from CDN, no plotly Python dependency); overview views are
+  timeseries / MDS-or-PCA clustering (2-D/3-D, word labels on points) /
+  trajectory, and clicking a point opens a detail overlay that renders the word
+  large (viz2psy's image analog) with sentence context, feature-panel dropdown,
+  and a slider to browse the whole set. MDS is used up to `mds_max` (500) rows,
+  PCA beyond; rows with NaN embeddings (word2vec OOV) are dropped from
+  projections via an `indices` mapping.
 - **`cli.py`** — single `word2psy` entry point. `MODEL_REGISTRY` maps model name →
   (module path, class name, description); models are imported lazily so `--help` and
   `--list-models` stay fast. `word2psy viz <subcommand>` routes to the viz layer.
@@ -127,7 +137,7 @@ assuming a code bug.
 ## Known gaps (as of Aug 2026)
 
 - Verified working as of Aug 2026: editable install on Python 3.11; full test suite
-  (119 tests); all seven norm-database downloads incl. parsing sanity checks; all 10
+  (137 tests); all seven norm-database downloads incl. parsing sanity checks; all 10
   models run end-to-end through the CLI in one `--all` invocation (43 s, ~5.7 GB peak
   RSS; words CSV 635 cols, chunks CSV 937 cols on a 2-sentence test), with strong
   face validity across norms, surprisal, OLD20, emotion, and sentiment.
@@ -143,13 +153,15 @@ Ordered; items become "next up" as their predecessors land.
 1. **Phase 2 — first full end-to-end run** (done Aug 2026): all caches populated
    (CLIP, fastText, norms, trained regressors); both models validated end-to-end via
    the CLI with strong face validity on a sample word list; README rewritten.
-2. **Interactive HTML dashboard** (viz2psy parity — its `--browse` viewer is the
-   reference). A `word2psy viz browse scores.csv -o viewer.html` style command emitting
-   a self-contained interactive HTML file (Plotly or similar) for exploring scores:
-   feature distributions, timeseries along the word sequence, 2-D projections with
-   word-level hover. Should reuse `viz/feature_config.py`'s model-detection logic to
-   decide which panels to show. The README already promises Plotly dashboards — this
-   item is what makes that true.
+2. **Interactive HTML dashboard** (done Aug 2026 — `word2psy viz browse scores.csv
+   -o viewer.html --open`; see `viz/dashboard.py` above). Validated in-browser
+   against a real `--all` run on an 8-sentence stimulus CSV: all 40 model × view
+   combinations render or degrade gracefully, and detail panels show strong face
+   validity (e.g. "the" maxes Zipf frequency; concrete vs. abstract words separate
+   in norm-space MDS; a joyful sentence tops GoEmotions joy). Deliberately not
+   ported from viz2psy: the animated trajectory (payload cost, low value for text)
+   and the separate popup viewer window (the detail view is an in-page overlay
+   instead).
 3. **Cross-modal demo**: cosine similarity between word2psy `clip_text` embeddings and
    viz2psy image embeddings in the shared space; becomes the flagship README example.
 4. **Model expansion** (done Aug 2026 — 10 models; the model space is considered

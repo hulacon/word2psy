@@ -19,6 +19,9 @@ space.
 - **CLIP text embeddings** directly comparable to viz2psy image embeddings
 - **Tidy outputs**: word-per-row CSV + chunk-per-row CSV + JSON metadata sidecar
 - **Built-in visualization**: timeseries, correlation heatmaps, and 2-D projections
+- **Interactive dashboard**: a self-contained HTML explorer (`word2psy viz browse`)
+  with timeseries, 2-D/3-D clustering, and trajectory views — click any word to
+  see its full feature profile in context, and browse the whole stimulus set
 
 ## Installation
 
@@ -62,6 +65,9 @@ word2psy viz timeseries features.csv -o timeseries.png
 word2psy viz heatmap features.csv -o heatmap.png
 word2psy viz scatter features.csv --method pca -o scatter.png
 word2psy viz recommend features.csv   # suggests plots for a given CSV
+
+# Interactive HTML dashboard (opens in your browser)
+word2psy viz browse features.csv -o viewer.html --open
 ```
 
 Python API:

@@ -34,6 +34,7 @@ Examples
     word2psy viz timeseries features.csv -o timeseries.png
     word2psy viz heatmap features.csv -o heatmap.png
     word2psy viz scatter features.csv --features "sensorimotor_*" -o scatter.png
+    word2psy viz browse features.csv -o viewer.html --open
     word2psy viz recommend features.csv
 """
 
@@ -201,6 +202,66 @@ def _parse_figsize(value: str) -> tuple[int, int]:
     return (int(parts[0]), int(parts[1]))
 
 
+def resolve_scores_paths(path: Path) -> tuple[Path | None, Path | None]:
+    """Resolve a scores path to its (words, chunks) CSV pair.
+
+    Accepts the base path given to ``-o`` at scoring time (``scores.csv``),
+    or either of the actual output files (``scores_words.csv`` /
+    ``scores_chunks.csv``). Missing files resolve to None.
+    """
+    name = path.name
+    if name.endswith("_words.csv"):
+        base = name[: -len("_words.csv")]
+    elif name.endswith("_chunks.csv"):
+        base = name[: -len("_chunks.csv")]
+    else:
+        base = path.stem
+    words = path.parent / f"{base}_words.csv"
+    chunks = path.parent / f"{base}_chunks.csv"
+    return (words if words.exists() else None, chunks if chunks.exists() else None)
+
+
+def _viz_browse(args):
+    """Handle 'word2psy viz browse'."""
+    import pandas as pd
+
+    from word2psy.viz.dashboard import create_dashboard
+
+    words_path, chunks_path = resolve_scores_paths(args.csv)
+    if words_path is None and chunks_path is None:
+        print(
+            f"Error: no scores files found for {args.csv} "
+            f"(looked for *_words.csv / *_chunks.csv).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    words_df = pd.read_csv(words_path) if words_path else None
+    chunks_df = pd.read_csv(chunks_path) if chunks_path else None
+    found = ", ".join(str(p) for p in (words_path, chunks_path) if p)
+    print(f"Building dashboard from {found}...")
+
+    html = create_dashboard(
+        words_df,
+        chunks_df,
+        title=args.title or f"word2psy — {args.csv.stem}",
+        max_points=args.max_points,
+    )
+
+    base = args.csv.name
+    for suffix in ("_words.csv", "_chunks.csv"):
+        if base.endswith(suffix):
+            base = base[: -len(suffix)]
+    output = args.output or args.csv.parent / f"{Path(base).stem}_browse.html"
+    output.write_text(html, encoding="utf-8")
+    print(f"Saved dashboard to {output}")
+
+    if args.open:
+        import webbrowser
+
+        webbrowser.open(f"file://{output.absolute()}")
+
+
 def _viz_main(argv: list[str]):
     """Handle 'word2psy viz ...' subcommands."""
     parser = argparse.ArgumentParser(
@@ -239,6 +300,30 @@ def _viz_main(argv: list[str]):
     p_sc.add_argument("--figsize", type=_parse_figsize, help="Figure size WxH.")
     p_sc.add_argument("--title", help="Plot title.")
 
+    # --- browse (interactive HTML dashboard) ---
+    p_br = sub.add_parser(
+        "browse",
+        help="Interactive HTML dashboard with per-word detail view.",
+    )
+    p_br.add_argument(
+        "csv",
+        type=Path,
+        help="Scores CSV base path (scores.csv) or a *_words.csv / *_chunks.csv file.",
+    )
+    p_br.add_argument("-o", "--output", type=Path, help="Output HTML path.")
+    p_br.add_argument("--title", help="Dashboard title.")
+    p_br.add_argument(
+        "--max-points",
+        type=int,
+        default=2000,
+        help="Maximum rows per table to include (default: 2000).",
+    )
+    p_br.add_argument(
+        "--open",
+        action="store_true",
+        help="Open the dashboard in a browser after creation.",
+    )
+
     # --- recommend ---
     p_rec = sub.add_parser("recommend", help="Suggest visualizations for a CSV.")
     p_rec.add_argument("csv", type=Path, help="Input CSV from word2psy.")
@@ -248,6 +333,10 @@ def _viz_main(argv: list[str]):
     if args.viz_cmd is None:
         parser.print_help()
         sys.exit(1)
+
+    if args.viz_cmd == "browse":
+        _viz_browse(args)
+        return
 
     import pandas as pd
 
