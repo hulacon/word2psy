@@ -33,9 +33,11 @@ uv pip install -e .
 ```
 
 On first use, models download automatically to `~/.cache/word2psy` (override with
-`WORD2PSY_CACHE`): the fastText vectors are a ~2.4 GB download (7.2 GB on disk), CLIP
-weights ~600 MB via Hugging Face, and the five norm databases a few MB each. Norm
-regressors are trained locally on first use (a few minutes, one time).
+`WORD2PSY_CACHE`): the fastText vectors are a ~2.4 GB download (7.2 GB on disk),
+word2vec ~1.7 GB, CLIP weights ~600 MB and GPT-2 ~550 MB via Hugging Face, and the
+five norm databases a few MB each. Norm regressors are trained locally on first use
+(a few minutes, one time). Models are loaded and freed one at a time, so peak memory
+is set by the largest requested model (fastText, ~7 GB) rather than the sum.
 
 ## Quick Start
 
@@ -81,13 +83,20 @@ words_df, chunks_df = score_text(
 | Model | Level | Output | Description |
 |-------|-------|--------|-------------|
 | `lexical_norms` | word | 18 features | 17 psycholinguistic norms predicted from fastText embeddings via ridge regression (concreteness, valence, arousal, dominance, age of acquisition, imageability, 11 Lancaster sensorimotor dimensions), plus Zipf word frequency |
+| `gpt2_surprisal` | context | 1 feature | Word surprisal in bits (−log₂ probability given preceding context) from GPT-2; the same word gets different values at different positions |
+| `fasttext` | word | 300-d embedding | fastText `crawl-300d-2M-subword` static embeddings; subword-based, so every string gets a vector (no OOV) |
+| `word2vec` | word | 300-d embedding | GoogleNews word2vec embeddings for comparability with the legacy literature; out-of-vocabulary words get NaN |
 | `clip_text` | chunk | 512-d embedding | OpenCLIP ViT-B-32 (`laion2b_s34b_b79k`) text embeddings, L2-normalized, in the same space as viz2psy image embeddings |
+
+Levels: **word** features depend on the word type alone and land in the words CSV;
+**context** features are word-level but depend on surrounding text (no
+deduplication); **chunk** features land in the chunks CSV.
 
 Norm predictions are extrapolations trained on published human rating databases;
 5-fold cross-validated accuracy ranges from r² ≈ 0.72 (concreteness) to ≈ 0.31
 (sensorimotor head), in line with published embedding-based norm extrapolation work.
 
-More models (word-level surprisal, sentiment/emotion, readability) are planned — see
+More models (sentiment/emotion, readability, sentence embeddings) are planned — see
 the roadmap in [CLAUDE.md](CLAUDE.md).
 
 ## Output Format
@@ -123,7 +132,8 @@ originals if you use the corresponding features):
 
 ## Hardware Requirements
 
-- **RAM**: 16 GB recommended (the fastText model alone loads ~7 GB)
+- **RAM**: 16 GB recommended (peak ~6 GB with all models, since models load one at a
+  time)
 - **Disk**: ~12 GB for model weights and caches
 - **GPU**: optional; CLIP uses CUDA or Apple MPS when available, CPU otherwise
 

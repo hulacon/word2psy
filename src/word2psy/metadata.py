@@ -30,6 +30,9 @@ def get_model_version(model_name: str) -> str:
     version_map = {
         "clip_text": ("open_clip_torch", None),
         "lexical_norms": ("scikit-learn", "fasttext+ridge"),
+        "gpt2_surprisal": ("transformers", None),
+        "fasttext": ("fasttext-wheel", None),
+        "word2vec": ("gensim", None),
     }
     pkg, fallback = version_map.get(model_name, (None, "unknown"))
     if pkg:
@@ -42,28 +45,32 @@ def get_model_version(model_name: str) -> str:
     return fallback or "unknown"
 
 
-def get_feature_info(model_name: str, feature_names: list[str]) -> dict[str, Any]:
-    """Get feature pattern/definition info for a model."""
-    count = len(feature_names)
+def get_feature_info(
+    model_name: str, feature_names: list[str], level: str | None = None
+) -> dict[str, Any]:
+    """Get feature pattern/definition info for a model.
 
-    if model_name == "clip_text" and feature_names and feature_names[0].startswith(
-        "clip_text_"
+    Embedding-style feature sets (all names ``{model}_{NNN}``) are
+    compacted to a pattern instead of listing every column.
+    """
+    count = len(feature_names)
+    prefix = f"{model_name}_"
+
+    info: dict[str, Any]
+    if feature_names and all(
+        f.startswith(prefix) and f[len(prefix) :].isdigit() for f in feature_names
     ):
-        return {
-            "pattern": "clip_text_{NNN}",
+        info = {
+            "pattern": f"{model_name}_{{NNN}}",
             "range": [0, count - 1],
             "count": count,
-            "level": "chunk",
         }
+    else:
+        info = {"columns": feature_names, "count": count}
 
-    if model_name == "lexical_norms":
-        return {
-            "columns": feature_names,
-            "count": count,
-            "level": "word",
-        }
-
-    return {"columns": feature_names, "count": count}
+    if level:
+        info["level"] = level
+    return info
 
 
 class MetadataBuilder:
@@ -108,13 +115,17 @@ class MetadataBuilder:
         self.device = str(device)
 
     def add_model(
-        self, model_name: str, feature_names: list[str], runtime_sec: float
+        self,
+        model_name: str,
+        feature_names: list[str],
+        runtime_sec: float,
+        level: str | None = None,
     ) -> None:
         """Add model info after it completes."""
         self.models[model_name] = {
             "version": get_model_version(model_name),
             "runtime_sec": round(runtime_sec, 3),
-            "features": get_feature_info(model_name, feature_names),
+            "features": get_feature_info(model_name, feature_names, level=level),
         }
         self.model_features[model_name] = feature_names
         self.total_runtime_sec += runtime_sec

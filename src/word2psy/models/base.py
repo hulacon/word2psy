@@ -21,10 +21,21 @@ class BaseModel(ABC):
 
     Subclasses must set the class attributes ``name`` and ``level``,
     and implement ``load()`` and ``predict()``.
+
+    Levels
+    ------
+    - "word": features are a function of the word type alone (norms,
+      static embeddings). The pipeline deduplicates unique words before
+      calling ``predict_batch``.
+    - "chunk": one feature vector per chunk (CLIP embeddings, sentiment).
+    - "context": word-level features that depend on the surrounding chunk
+      (e.g. surprisal). Implement ``predict_context`` instead of relying
+      on ``predict_batch``; the same word gets different values at
+      different positions.
     """
 
     name: str = ""
-    level: str = ""  # "word" or "chunk"
+    level: str = ""  # "word", "chunk", or "context"
 
     def __init__(self, device: str | None = None):
         if device:
@@ -59,6 +70,32 @@ class BaseModel(ABC):
         with a more efficient batched version.
         """
         return [self.predict(t) for t in texts]
+
+    def predict_context(
+        self, chunk_text: str, words: list[str]
+    ) -> list[dict[str, float]]:
+        """Return per-word scores computed in chunk context.
+
+        ``words`` are the pipeline's word tokens for this chunk, in order.
+        Only meaningful for ``level == "context"`` models.
+        """
+        raise NotImplementedError(
+            f"{self.name} does not implement context-level prediction"
+        )
+
+    def unload(self) -> None:
+        """Release model weights to free memory.
+
+        The pipeline unloads each model after scoring so that large models
+        (fastText ~7 GB, word2vec ~3.6 GB) are not resident simultaneously.
+        ``load()`` is called again on the next use.
+        """
+        import gc
+
+        self.model = None
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
     def to(self, device: torch.device) -> "BaseModel":
         """Move the underlying torch model to the given device."""

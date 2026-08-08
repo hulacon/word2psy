@@ -52,15 +52,30 @@ from word2psy.exceptions import (
 )
 
 MODEL_REGISTRY = {
-    "clip_text": (
-        "word2psy.models.clip_text",
-        "CLIPTextModel",
-        "512-dim CLIP ViT-B-32 text embeddings",
-    ),
     "lexical_norms": (
         "word2psy.models.lexical_norms",
         "LexicalNormsModel",
         "17 psycholinguistic word norms + Zipf frequency",
+    ),
+    "gpt2_surprisal": (
+        "word2psy.models.gpt2_surprisal",
+        "GPT2SurprisalModel",
+        "Word surprisal in context (bits) from GPT-2",
+    ),
+    "fasttext": (
+        "word2psy.models.fasttext_embed",
+        "FastTextModel",
+        "300-dim fastText subword embeddings (no OOV)",
+    ),
+    "word2vec": (
+        "word2psy.models.word2vec",
+        "Word2VecModel",
+        "300-dim GoogleNews word2vec embeddings (NaN for OOV)",
+    ),
+    "clip_text": (
+        "word2psy.models.clip_text",
+        "CLIPTextModel",
+        "512-dim CLIP ViT-B-32 text embeddings (shared space with viz2psy)",
     ),
 }
 
@@ -477,6 +492,7 @@ def main():
                     m.name,
                     getattr(m, "feature_names_", []),
                     total_time / len(models),
+                    level=m.level,
                 )
 
             meta_path = metadata.save(args.output)

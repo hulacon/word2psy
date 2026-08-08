@@ -9,6 +9,7 @@ Produces two tables mirroring viz2psy's row-per-stimulus CSV layout:
 
 import time
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
@@ -113,10 +114,16 @@ def score_text(
             _score_chunk_level(
                 chunks_df, chunks, model, batch_size=batch_size, quiet=quiet
             )
+        elif model.level == "context":
+            _score_context_level(words_df, chunks, model, quiet=quiet)
         else:
             raise InferenceError(
                 model.name, f"Unknown model level: {model.level!r}"
             )
+
+        # Free weights so large models are not resident simultaneously
+        # (fastText alone is ~7 GB); load() re-runs on next use.
+        model.unload()
 
         elapsed = time.time() - start_time
         if not quiet:
@@ -171,6 +178,46 @@ def _score_word_level(
     feature_names = list(all_scores[0].keys()) if all_scores else []
     for feat in feature_names:
         words_df[feat] = [word_to_scores[w][feat] for w in words]
+
+    model.feature_names_ = feature_names
+
+
+def _score_context_level(
+    words_df: pd.DataFrame,
+    chunks: list[str],
+    model: BaseModel,
+    *,
+    quiet: bool = False,
+) -> None:
+    """Add context-dependent word-level features to the words DataFrame.
+
+    Unlike word-level scoring there is no deduplication: the same word
+    gets different values at different positions.
+    """
+    feature_names: list[str] = []
+
+    iterator = list(enumerate(chunks))
+    if not quiet:
+        iterator = tqdm(iterator, desc=model.name)
+
+    for chunk_idx, chunk_text in iterator:
+        rows = words_df.index[words_df["chunk_idx"] == chunk_idx]
+        words = words_df.loc[rows, "word"].tolist()
+        if not words:
+            continue
+        try:
+            scores = model.predict_context(chunk_text, words)
+        except Exception as e:
+            raise InferenceError(model.name, str(e)) from e
+
+        if not feature_names and scores:
+            feature_names = list(scores[0].keys())
+            for feat in feature_names:
+                if feat not in words_df.columns:
+                    words_df[feat] = np.nan
+        for row, s in zip(rows, scores):
+            for feat in feature_names:
+                words_df.loc[row, feat] = s[feat]
 
     model.feature_names_ = feature_names
 

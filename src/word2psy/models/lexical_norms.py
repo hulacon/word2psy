@@ -32,6 +32,11 @@ class LexicalNormsModel(BaseModel):
         self._regressors = load_regressors()
         self._ft_model = load_fasttext()
 
+    def unload(self) -> None:
+        self._regressors = None
+        self._ft_model = None
+        super().unload()
+
     def predict(self, text: str) -> dict[str, float]:
         word = text.strip().lower()
         vec = self._ft_model.get_word_vector(word).reshape(1, -1)

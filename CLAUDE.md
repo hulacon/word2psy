@@ -24,10 +24,19 @@ matching change in viz2psy.
 ## Architecture (`src/word2psy/`)
 
 - **`models/base.py`** — `BaseModel` ABC. Subclasses set class attrs `name` and `level`
-  (`"word"` or `"chunk"`) and implement `load()` and `predict(text) -> dict[str, float]`;
-  override `predict_batch()` for real batching. Device auto-detect (cuda → mps → cpu).
-- **`models/`** — implemented models: `clip_text` (chunk-level, 512-d embeddings),
-  `lexical_norms` (word-level, 17 psycholinguistic features).
+  (`"word"`, `"chunk"`, or `"context"`) and implement `load()` and
+  `predict(text) -> dict[str, float]`; override `predict_batch()` for real batching, or
+  `predict_context(chunk_text, words)` for context-level models. Device auto-detect
+  (cuda → mps → cpu). `unload()` frees weights — the pipeline unloads each model after
+  scoring so peak RAM is one model at a time (the machine has 16 GB; fastText alone is
+  ~7 GB resident).
+- **`models/`** — implemented: `lexical_norms` (word, 18 features), `gpt2_surprisal`
+  (context, bits, BOS-prepended, strided beyond 1024 tokens), `fasttext` (word, 300-d,
+  reuses the norms backbone), `word2vec` (word, 300-d GoogleNews via gensim, NaN for
+  OOV), `clip_text` (chunk, 512-d).
+  Levels: "word" = function of word type (deduplicated before inference); "context" =
+  word-level but position-dependent (no dedup, scored chunk by chunk); "chunk" = one
+  row per chunk.
 - **`tokenize.py`** — nltk (punkt) sentence + word tokenization into the word-per-row
   DataFrame. Punctuation tokens dropped by default (`--keep-punctuation` to keep).
 - **`pipeline.py`** — `score_text(text, models)` returns `(words_df, chunks_df)`.
@@ -135,8 +144,11 @@ Ordered; items become "next up" as their predecessors land.
    item is what makes that true.
 3. **Cross-modal demo**: cosine similarity between word2psy `clip_text` embeddings and
    viz2psy image embeddings in the shared space; becomes the flagship README example.
-4. **Model expansion** (value-per-effort order for word stimuli): GPT-2 word-level
-   surprisal; sentiment/emotion (chunk-level transformers); readability (pure Python);
-   then topics / NER / moral foundations.
+4. **Model expansion** (gpt2_surprisal, fasttext, word2vec landed Aug 2026; remaining,
+   value-per-effort order): emotion (GoEmotions-style chunk-level transformer — the
+   analog of viz2psy's EmoNet); sentiment; readability (pure Python, chunk-level);
+   wordform features (length, syllables, orthographic neighborhood/OLD20); GloVe via
+   the gensim wrapper if comparability demands it; then topics / NER / moral
+   foundations.
 5. **Phrase/sentence-level features** (aspirational): sentence-transformer embeddings;
    decide compositional vs. direct scoring for phrase-level norms.
