@@ -30,10 +30,13 @@ matching change in viz2psy.
   (cuda → mps → cpu). `unload()` frees weights — the pipeline unloads each model after
   scoring so peak RAM is one model at a time (the machine has 16 GB; fastText alone is
   ~7 GB resident).
-- **`models/`** — implemented: `lexical_norms` (word, 18 features), `gpt2_surprisal`
-  (context, bits, BOS-prepended, strided beyond 1024 tokens), `fasttext` (word, 300-d,
-  reuses the norms backbone), `word2vec` (word, 300-d GoogleNews via gensim, NaN for
-  OOV), `clip_text` (chunk, 512-d).
+- **`models/`** — implemented (10): word-level `lexical_norms` (23 features),
+  `wordform` (length/syllables/phonemes/OLD20), `fasttext` (300-d, reuses the norms
+  backbone), `word2vec` (300-d GoogleNews via gensim, NaN for OOV); context-level
+  `gpt2_surprisal` (bits, BOS-prepended, strided beyond 1024 tokens); chunk-level
+  `sentiment` (3, cardiffnlp RoBERTa), `emotion` (28, GoEmotions RoBERTa — EmoNet
+  analog), `readability` (7, textstat), `minilm` (384-d sentence-transformers),
+  `clip_text` (512-d).
   Levels: "word" = function of word type (deduplicated before inference); "context" =
   word-level but position-dependent (no dedup, scored chunk by chunk); "chunk" = one
   row per chunk.
@@ -51,12 +54,14 @@ matching change in viz2psy.
     parquet. `NORM_SOURCES` holds URLs + parsing specs.
   - `train.py` fits `RidgeCV` regressors on fastText `crawl-300d-2M-subword` vectors to
     extrapolate each norm to arbitrary words; caches fitted models as joblib.
-    `NORM_DIMENSIONS` is the single source of truth for norm feature names — the CLI's
-    metadata step imports it too. Multi-word norm entries are dropped at training time
-    and CV folds are shuffled (norm files are ordered; unshuffled CV gave a bogus
-    negative r² for concreteness). Baseline 5-fold CV r² (Aug 2026): concreteness .72,
-    imageability .69, AoA .60, valence .55, arousal/dominance .45, sensorimotor
-    .31–.53 — consistent with published embedding→norm extrapolation results.
+    `NORM_DIMENSIONS` is the single source of truth for norm feature names. Multi-word
+    norm entries are dropped at training time and CV folds are shuffled (norm files are
+    ordered; unshuffled CV gave a bogus negative r² for concreteness). `load_norm`
+    re-downloads a cached parquet if the source spec gained columns. Baseline 5-fold
+    CV r² (Aug 2026): concreteness .72, imageability .69, socialness/semantic_size
+    .63–.64, gender_association/BOI .61, AoA .60, familiarity .58, valence .55,
+    arousal/dominance .45, sensorimotor .31–.53 — consistent with published
+    embedding→norm extrapolation results.
 - **`viz/`** — matplotlib/seaborn plots: `timeseries`, `heatmap` (feature correlations),
   `scatter` (PCA/PPCA/UMAP/t-SNE/MDS projections), plus `feature_config.py` which
   detects which models produced a CSV's columns and recommends visualizations.
@@ -144,11 +149,10 @@ Ordered; items become "next up" as their predecessors land.
    item is what makes that true.
 3. **Cross-modal demo**: cosine similarity between word2psy `clip_text` embeddings and
    viz2psy image embeddings in the shared space; becomes the flagship README example.
-4. **Model expansion** (gpt2_surprisal, fasttext, word2vec landed Aug 2026; remaining,
-   value-per-effort order): emotion (GoEmotions-style chunk-level transformer — the
-   analog of viz2psy's EmoNet); sentiment; readability (pure Python, chunk-level);
-   wordform features (length, syllables, orthographic neighborhood/OLD20); GloVe via
-   the gensim wrapper if comparability demands it; then topics / NER / moral
-   foundations.
+4. **Model expansion** (done Aug 2026 — 10 models; the model space is considered
+   feature-complete for dashboard design). Deliberately deferred: topics, NER, moral
+   foundations, LIWC-style categories, GloVe. Note for dashboard: all current model
+   outputs are numeric — adding categorical outputs (POS tags, captions) later would
+   be an interface change.
 5. **Phrase/sentence-level features** (aspirational): sentence-transformer embeddings;
    decide compositional vs. direct scoring for phrase-level norms.

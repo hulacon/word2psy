@@ -34,10 +34,11 @@ uv pip install -e .
 
 On first use, models download automatically to `~/.cache/word2psy` (override with
 `WORD2PSY_CACHE`): the fastText vectors are a ~2.4 GB download (7.2 GB on disk),
-word2vec ~1.7 GB, CLIP weights ~600 MB and GPT-2 ~550 MB via Hugging Face, and the
-five norm databases a few MB each. Norm regressors are trained locally on first use
-(a few minutes, one time). Models are loaded and freed one at a time, so peak memory
-is set by the largest requested model (fastText, ~7 GB) rather than the sum.
+word2vec ~1.7 GB, CLIP ~600 MB, GPT-2 ~550 MB, the sentiment and emotion RoBERTas
+~500 MB each, MiniLM ~90 MB, and the seven norm databases a few MB each. Norm
+regressors are trained locally on first use (a few minutes, one time). Models are
+loaded and freed one at a time, so peak memory is set by the largest requested model
+(fastText, ~7 GB) rather than the sum.
 
 ## Quick Start
 
@@ -82,10 +83,15 @@ words_df, chunks_df = score_text(
 
 | Model | Level | Output | Description |
 |-------|-------|--------|-------------|
-| `lexical_norms` | word | 18 features | 17 psycholinguistic norms predicted from fastText embeddings via ridge regression (concreteness, valence, arousal, dominance, age of acquisition, imageability, 11 Lancaster sensorimotor dimensions), plus Zipf word frequency |
-| `gpt2_surprisal` | context | 1 feature | Word surprisal in bits (−log₂ probability given preceding context) from GPT-2; the same word gets different values at different positions |
+| `lexical_norms` | word | 23 features | 22 psycholinguistic norms predicted from fastText embeddings via ridge regression (concreteness, valence, arousal, dominance, age of acquisition, imageability, familiarity, semantic size, gender association, socialness, body-object interaction, 11 Lancaster sensorimotor dimensions), plus Zipf word frequency |
+| `wordform` | word | 4 features | Length, syllable and phoneme counts (CMUdict), and orthographic OLD20 neighborhood distance |
 | `fasttext` | word | 300-d embedding | fastText `crawl-300d-2M-subword` static embeddings; subword-based, so every string gets a vector (no OOV) |
 | `word2vec` | word | 300-d embedding | GoogleNews word2vec embeddings for comparability with the legacy literature; out-of-vocabulary words get NaN |
+| `gpt2_surprisal` | context | 1 feature | Word surprisal in bits (−log₂ probability given preceding context) from GPT-2; the same word gets different values at different positions |
+| `sentiment` | chunk | 3 features | Negative/neutral/positive probabilities (cardiffnlp RoBERTa) |
+| `emotion` | chunk | 28 features | GoEmotions category probabilities (multi-label RoBERTa) — the text analog of viz2psy's EmoNet |
+| `readability` | chunk | 7 features | Flesch, Flesch-Kincaid, Gunning Fog, SMOG, Coleman-Liau, ARI, Dale-Chall |
+| `minilm` | chunk | 384-d embedding | all-MiniLM-L6-v2 sentence embeddings — text-only semantic space, sharper than CLIP for verbal similarity |
 | `clip_text` | chunk | 512-d embedding | OpenCLIP ViT-B-32 (`laion2b_s34b_b79k`) text embeddings, L2-normalized, in the same space as viz2psy image embeddings |
 
 Levels: **word** features depend on the word type alone and land in the words CSV;
@@ -95,9 +101,6 @@ deduplication); **chunk** features land in the chunks CSV.
 Norm predictions are extrapolations trained on published human rating databases;
 5-fold cross-validated accuracy ranges from r² ≈ 0.72 (concreteness) to ≈ 0.31
 (sensorimotor head), in line with published embedding-based norm extrapolation work.
-
-More models (sentiment/emotion, readability, sentence embeddings) are planned — see
-the roadmap in [CLAUDE.md](CLAUDE.md).
 
 ## Output Format
 
@@ -126,8 +129,11 @@ originals if you use the corresponding features):
 - Brysbaert, Warriner, & Kuperman (2014) — concreteness
 - Mohammad (2018), NRC VAD Lexicon — valence, arousal, dominance
 - Kuperman, Stadthagen-Gonzalez, & Brysbaert (2012) — age of acquisition
-- Scott et al. (2019), Glasgow Norms — imageability
+- Scott et al. (2019), Glasgow Norms — imageability, familiarity, semantic size,
+  gender association
 - Lynott et al. (2020), Lancaster Sensorimotor Norms — 11 sensorimotor dimensions
+- Diveica, Pexman, & Binney (2023) — socialness
+- Pexman et al. (2019) — body-object interaction
 - Speer et al., [wordfreq](https://github.com/rspeer/wordfreq) — Zipf frequency
 
 ## Hardware Requirements

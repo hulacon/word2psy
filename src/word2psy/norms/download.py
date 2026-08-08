@@ -45,7 +45,25 @@ NORM_SOURCES = {
         ),
         "format": "glasgow_csv",  # special handling for two-row header
         "word_col": 0,
-        "score_cols": {"imageability": 14},  # IMAG M column index
+        # Mean ("M") column indices per dimension group
+        "score_cols": {
+            "imageability": 14,
+            "familiarity": 17,
+            "semantic_size": 23,
+            "gender_association": 26,
+        },
+    },
+    "socialness": {
+        "url": "https://osf.io/download/29eyh/",
+        "format": "csv",
+        "word_col": "Word",
+        "score_cols": {"socialness": "Mean"},
+    },
+    "boi": {
+        "url": "https://osf.io/download/r84qn/",
+        "format": "xlsx",
+        "word_col": "Word",
+        "score_cols": {"body_object_interaction": "Mean"},
     },
     "lancaster_sensorimotor": {
         "url": "https://osf.io/48wsc/download",
@@ -168,6 +186,15 @@ def download_all(*, force: bool = False) -> dict[str, Path]:
 
 
 def load_norm(name: str) -> pd.DataFrame:
-    """Load a norm database, downloading if necessary."""
+    """Load a norm database, downloading if necessary.
+
+    If the cached parquet predates a change to the source spec (missing
+    newly added score columns), it is re-downloaded.
+    """
     path = download_norm(name)
-    return pd.read_parquet(path)
+    df = pd.read_parquet(path)
+    expected = set(NORM_SOURCES[name]["score_cols"])
+    if not expected.issubset(df.columns):
+        path = download_norm(name, force=True)
+        df = pd.read_parquet(path)
+    return df

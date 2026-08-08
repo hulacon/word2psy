@@ -33,6 +33,11 @@ def get_model_version(model_name: str) -> str:
         "gpt2_surprisal": ("transformers", None),
         "fasttext": ("fasttext-wheel", None),
         "word2vec": ("gensim", None),
+        "emotion": ("transformers", None),
+        "sentiment": ("transformers", None),
+        "readability": ("textstat", None),
+        "wordform": ("rapidfuzz", None),
+        "minilm": ("sentence-transformers", None),
     }
     pkg, fallback = version_map.get(model_name, (None, "unknown"))
     if pkg:

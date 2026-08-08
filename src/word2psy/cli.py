@@ -52,15 +52,16 @@ from word2psy.exceptions import (
 )
 
 MODEL_REGISTRY = {
+    # word-level
     "lexical_norms": (
         "word2psy.models.lexical_norms",
         "LexicalNormsModel",
-        "17 psycholinguistic word norms + Zipf frequency",
+        "22 psycholinguistic word norms + Zipf frequency",
     ),
-    "gpt2_surprisal": (
-        "word2psy.models.gpt2_surprisal",
-        "GPT2SurprisalModel",
-        "Word surprisal in context (bits) from GPT-2",
+    "wordform": (
+        "word2psy.models.wordform",
+        "WordformModel",
+        "Length, syllables, phonemes, orthographic OLD20",
     ),
     "fasttext": (
         "word2psy.models.fasttext_embed",
@@ -71,6 +72,33 @@ MODEL_REGISTRY = {
         "word2psy.models.word2vec",
         "Word2VecModel",
         "300-dim GoogleNews word2vec embeddings (NaN for OOV)",
+    ),
+    # context-level
+    "gpt2_surprisal": (
+        "word2psy.models.gpt2_surprisal",
+        "GPT2SurprisalModel",
+        "Word surprisal in context (bits) from GPT-2",
+    ),
+    # chunk-level
+    "sentiment": (
+        "word2psy.models.sentiment",
+        "SentimentModel",
+        "Negative/neutral/positive probabilities (RoBERTa)",
+    ),
+    "emotion": (
+        "word2psy.models.emotion",
+        "EmotionModel",
+        "28 GoEmotions probabilities (RoBERTa)",
+    ),
+    "readability": (
+        "word2psy.models.readability",
+        "ReadabilityModel",
+        "7 classic readability metrics",
+    ),
+    "minilm": (
+        "word2psy.models.sentence_embed",
+        "SentenceEmbedModel",
+        "384-dim MiniLM sentence embeddings",
     ),
     "clip_text": (
         "word2psy.models.clip_text",

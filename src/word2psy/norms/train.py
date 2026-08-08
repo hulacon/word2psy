@@ -41,6 +41,11 @@ NORM_DIMENSIONS = {
     "sensorimotor_foot": ("lancaster_sensorimotor", "sensorimotor_foot"),
     "sensorimotor_head": ("lancaster_sensorimotor", "sensorimotor_head"),
     "sensorimotor_torso": ("lancaster_sensorimotor", "sensorimotor_torso"),
+    "familiarity": ("glasgow", "familiarity"),
+    "semantic_size": ("glasgow", "semantic_size"),
+    "gender_association": ("glasgow", "gender_association"),
+    "socialness": ("socialness", "socialness"),
+    "body_object_interaction": ("boi", "body_object_interaction"),
 }
 
 
