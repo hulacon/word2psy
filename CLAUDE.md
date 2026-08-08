@@ -21,6 +21,13 @@ embeddings from viz2psy live in one shared 512-d space and can be directly compa
 its L2 normalization, or the `clip_text_{i:03d}` column naming without coordinating a
 matching change in viz2psy.
 
+Likewise `CLAPTextModel` (added Aug 2026) shares the **LAION-CLAP checkpoint
+`laion/larger_clap_music_and_speech` with aud2psy's `clap` audio model** — text and
+soundtrack embeddings in one 512-d space, `clap_text_{i:03d}` columns, paired by
+psyquilt's `COMPATIBLE_SPACES`. Same coordination rule: don't touch checkpoint,
+normalization, or naming unilaterally. (transformers ≥ 5 note: `get_text_features`
+returns a ModelOutput; the projection is `pooler_output`.)
+
 ## Architecture (`src/word2psy/`)
 
 - **`models/base.py`** — `BaseModel` ABC. Subclasses set class attrs `name` and `level`
@@ -30,13 +37,13 @@ matching change in viz2psy.
   (cuda → mps → cpu). `unload()` frees weights — the pipeline unloads each model after
   scoring so peak RAM is one model at a time (the machine has 16 GB; fastText alone is
   ~7 GB resident).
-- **`models/`** — implemented (10): word-level `lexical_norms` (23 features),
+- **`models/`** — implemented (11): word-level `lexical_norms` (23 features),
   `wordform` (length/syllables/phonemes/OLD20), `fasttext` (300-d, reuses the norms
   backbone), `word2vec` (300-d GoogleNews via gensim, NaN for OOV); context-level
   `gpt2_surprisal` (bits, BOS-prepended, strided beyond 1024 tokens); chunk-level
   `sentiment` (3, cardiffnlp RoBERTa), `emotion` (28, GoEmotions RoBERTa — EmoNet
   analog), `readability` (7, textstat), `minilm` (384-d sentence-transformers),
-  `clip_text` (512-d).
+  `clip_text` (512-d), `clap_text` (512-d, aud2psy-shared space; see above).
   Levels: "word" = function of word type (deduplicated before inference); "context" =
   word-level but position-dependent (no dedup, scored chunk by chunk); "chunk" = one
   row per chunk.

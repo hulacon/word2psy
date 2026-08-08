@@ -109,6 +109,11 @@ MODEL_REGISTRY = {
         "CLIPTextModel",
         "512-dim CLIP ViT-B-32 text embeddings (shared space with viz2psy)",
     ),
+    "clap_text": (
+        "word2psy.models.clap_text",
+        "CLAPTextModel",
+        "512-dim CLAP text embeddings (shared space with aud2psy audio)",
+    ),
 }
 
 

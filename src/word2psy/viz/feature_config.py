@@ -216,6 +216,17 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         timeseries_mode="none",
         column_patterns=["clip_text_*"],
     ),
+    "clap_text": FeatureConfig(
+        name="clap_text",
+        description="512-dim CLAP text embeddings (shared space with aud2psy)",
+        feature_type="embedding",
+        n_dims=512,
+        level="chunk",
+        timeseries=False,
+        mds_clustering=True,
+        timeseries_mode="none",
+        column_patterns=["clap_text_*"],
+    ),
     # Pseudo-model: pipeline-generated per-chunk aggregates of word-level
     # features ({feature}_{mean,sd,min,max}; see pipeline.aggregate_word_features)
     "word_aggregates": FeatureConfig(
