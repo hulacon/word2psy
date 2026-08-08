@@ -99,10 +99,12 @@ of viz2psy-style flat CSVs at each level):
 ## Cache and downloads
 
 Everything heavy lives in `~/.cache/word2psy` (override with `WORD2PSY_CACHE`):
-`norms/*.parquet`, `models/*.joblib` (trained regressors), and
-`fasttext/crawl-300d-2M-subword.bin` (**~7 GB**, one-time download). CLIP weights
-(~400 MB) go to open_clip's own HuggingFace cache. Norm regressors are trained lazily
-on first use of `lexical_norms`.
+`norms/*.parquet` (7 databases), `models/*.joblib` (22 trained regressors),
+`fasttext/crawl-300d-2M-subword.bin` (**~7 GB**, one-time download), and
+`gensim/` (word2vec, ~1.7 GB). Transformer weights (CLIP, GPT-2, the two RoBERTas,
+MiniLM — ~2 GB total) go to the HuggingFace cache. Norm regressors are trained lazily
+on first use of `lexical_norms`. All caches are fully populated on this machine as of
+Aug 2026.
 
 Norm source URLs (`norms/download.py`) point at third-party hosts (OSF, Springer,
 saifmohammad.com, GitHub) and can rot — if a download fails, check the URL before
@@ -125,9 +127,10 @@ assuming a code bug.
 ## Known gaps (as of Aug 2026)
 
 - Verified working as of Aug 2026: editable install on Python 3.11; full test suite
-  (56 tests); all five norm-database downloads incl. parsing sanity checks; both
-  models run end-to-end through the CLI (CSV + HDF5 + metadata sidecars all
-  well-formed; lexical_norms predictions show strong face validity).
+  (119 tests); all seven norm-database downloads incl. parsing sanity checks; all 10
+  models run end-to-end through the CLI in one `--all` invocation (43 s, ~5.7 GB peak
+  RSS; words CSV 635 cols, chunks CSV 937 cols on a 2-sentence test), with strong
+  face validity across norms, surprisal, OLD20, emotion, and sentiment.
 - `README.md` was rewritten (Aug 2026) to match reality — keep its claims matched to
   `MODEL_REGISTRY` as models are added.
 - Not published to PyPI. `pyproject.toml` URLs say `github.com/bhutch/word2psy`; the
