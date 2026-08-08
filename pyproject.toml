@@ -61,9 +61,9 @@ dev = ["pytest", "ipython"]
 word2psy = "word2psy.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/bhutch/word2psy"
-Repository = "https://github.com/bhutch/word2psy"
-Issues = "https://github.com/bhutch/word2psy/issues"
+Homepage = "https://github.com/hulacon/word2psy"
+Repository = "https://github.com/hulacon/word2psy"
+Issues = "https://github.com/hulacon/word2psy/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]

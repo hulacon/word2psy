@@ -149,8 +149,8 @@ assuming a code bug.
   face validity across norms, surprisal, OLD20, emotion, and sentiment.
 - `README.md` was rewritten (Aug 2026) to match reality — keep its claims matched to
   `MODEL_REGISTRY` as models are added.
-- Not published to PyPI. `pyproject.toml` URLs say `github.com/bhutch/word2psy`; the
-  sibling project lives under `github.com/hulacon` — reconcile before publishing.
+- Not published to PyPI. (`pyproject.toml` URLs fixed to `github.com/hulacon`,
+  Aug 2026.)
 
 ## Roadmap
 
