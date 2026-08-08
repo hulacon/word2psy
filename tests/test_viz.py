@@ -130,7 +130,9 @@ class TestFeatureConfig:
     def test_all_registry_models_have_configs(self):
         from word2psy.cli import MODEL_REGISTRY
 
-        assert set(FEATURE_CONFIGS) == set(MODEL_REGISTRY)
+        # Configs cover every registry model (plus pipeline pseudo-models
+        # like word_aggregates)
+        assert set(FEATURE_CONFIGS) >= set(MODEL_REGISTRY)
 
     def test_level_detection(self):
         detected = detect_models_in_dataframe(

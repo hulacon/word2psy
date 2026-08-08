@@ -216,6 +216,24 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         timeseries_mode="none",
         column_patterns=["clip_text_*"],
     ),
+    # Pseudo-model: pipeline-generated per-chunk aggregates of word-level
+    # features ({feature}_{mean,sd,min,max}; see pipeline.aggregate_word_features)
+    "word_aggregates": FeatureConfig(
+        name="word_aggregates",
+        description="Per-chunk mean/sd/min/max of word-level features",
+        feature_type="named_distribution",
+        n_dims=len(_LEXICAL_NORM_FEATURES + _WORDFORM_FEATURES + ["gpt2_surprisal"]) * 4,
+        level="chunk",
+        timeseries=True,
+        mds_clustering=True,
+        timeseries_mode="top_k",
+        top_k=8,
+        column_patterns=[
+            f"{feat}_{stat}"
+            for feat in _LEXICAL_NORM_FEATURES + _WORDFORM_FEATURES + ["gpt2_surprisal"]
+            for stat in ("mean", "sd", "min", "max")
+        ],
+    ),
 }
 
 
@@ -349,4 +367,5 @@ emotion        | chunk | Yes (top-8) | Yes         | 28 GoEmotions probabilities
 readability    | chunk | Yes (all)   | No          | 7 readability metrics
 minilm         | chunk | No          | Yes         | 384-dim sentence embeddings
 clip_text      | chunk | No          | Yes         | 512-dim text embeddings
+word_aggregates| chunk | Yes (top-8) | Yes         | per-chunk mean/sd/min/max of word features
 """

@@ -45,7 +45,12 @@ matching change in viz2psy.
 - **`pipeline.py`** — `score_text(text, models)` returns `(words_df, chunks_df)`.
   Word-level models append columns to the words table (deduplicated by unique word
   before inference); chunk-level models append columns to the chunks table
-  (embeddings flat).
+  (embeddings flat). `by_sentence=True` (CLI `--by-sentence`) re-chunks input so
+  each sentence is its own chunk (labels `{orig}/s{j}`, passthrough rows repeated).
+  `aggregate_word_features` (on by default, CLI `--no-word-aggregates`) appends
+  per-chunk `{feature}_{mean,sd,min,max}` of word-level scalar features to the
+  chunks table — NaN-aware, sd ddof=1 (NaN for 1-word chunks), embeddings
+  excluded; surfaced in the dashboard via the `word_aggregates` pseudo-config.
 - **`metadata.py`** — builds the `.json` sidecar documenting inputs, models, features,
   timing, and device.
 - **`crossmodal.py`** — text × image cosine similarity in the shared CLIP space:
@@ -143,7 +148,7 @@ assuming a code bug.
 ## Known gaps (as of Aug 2026)
 
 - Verified working as of Aug 2026: editable install on Python 3.11; full test suite
-  (147 tests); all seven norm-database downloads incl. parsing sanity checks; all 10
+  (158 tests); all seven norm-database downloads incl. parsing sanity checks; all 10
   models run end-to-end through the CLI in one `--all` invocation (43 s, ~5.7 GB peak
   RSS; words CSV 635 cols, chunks CSV 937 cols on a 2-sentence test), with strong
   face validity across norms, surprisal, OLD20, emotion, and sentiment.
@@ -183,5 +188,28 @@ Ordered; items become "next up" as their predecessors land.
    foundations, LIWC-style categories, GloVe. Note for dashboard: all current model
    outputs are numeric — adding categorical outputs (POS tags, captions) later would
    be an interface change.
-5. **Phrase/sentence-level features** (aspirational): sentence-transformer embeddings;
-   decide compositional vs. direct scoring for phrase-level norms.
+5. **Phrase/sentence-level features** — partially landed Aug 2026: `--by-sentence`
+   gives every chunk-level model sentence resolution (no I/O format change), and
+   per-chunk word-feature aggregates (`{feature}_{mean,sd,min,max}`, on by
+   default) cover the common "mean concreteness of the passage" use case.
+   Sentence-transformer embeddings were already covered by `minilm`.
+
+   **Remaining — phrase-level norms (next session): decide compositional vs.
+   direct scoring empirically.** Design:
+   - *Test set*: the multi-word entries the norm downloads already contain but
+     `train.py` drops at training time — Brysbaert concreteness alone has ~2.9k
+     human-rated two-word expressions; check NRC VAD, socialness, and BOI for
+     more. These are free held-out ground truth: no new data collection.
+   - *Contenders*, scored against held-out human ratings (r², same protocol as
+     the word-norm CV benchmarks): (a) **compositional** — mean of constituent
+     word predictions; (b) **direct-fastText** — the phrase string straight
+     through the existing fastText→ridge regressors (subword averaging makes
+     this quasi-compositional in embedding space, so it may not differ much
+     from (a)); (c) **direct-MiniLM** — phrase embedded with minilm, new ridge
+     regressors trained on the single-word ratings.
+   - *Report* overall r² plus the non-compositional tail specifically (idioms
+     like "hot dog", negated phrases) where (a) should fail distinctively.
+   - *Decision rule*: if (b) or (c) meaningfully beats (a), add a phrase-level
+     norms path (likely a `phrase_norms` chunk-level model); if not, close the
+     item — aggregates + compositional means already are the answer, and that
+     null result is worth recording in the README.

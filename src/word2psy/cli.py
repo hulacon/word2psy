@@ -562,6 +562,23 @@ def main():
         help="Keep punctuation tokens in the word table.",
     )
     parser.add_argument(
+        "--by-sentence",
+        action="store_true",
+        help=(
+            "Make every sentence its own chunk (labels "
+            "'{original}/s{j}'), so chunk-level models score sentences."
+        ),
+    )
+    parser.add_argument(
+        "--no-word-aggregates",
+        action="store_false",
+        dest="aggregate_words",
+        help=(
+            "Do not append per-chunk mean/sd/min/max of word-level "
+            "features to the chunks table."
+        ),
+    )
+    parser.add_argument(
         "--text-column",
         help="For CSV/TSV input: column containing the text (each row = one chunk).",
     )
@@ -645,6 +662,8 @@ def main():
             batch_size=args.batch_size,
             quiet=args.quiet,
             keep_punctuation=args.keep_punctuation,
+            by_sentence=args.by_sentence,
+            aggregate_words=args.aggregate_words,
         )
         total_time = time.time() - start
 

@@ -68,7 +68,22 @@ class TestPipelineWordOnly:
         )
         assert "concreteness" in words_df.columns
         assert "zipf_frequency" in words_df.columns
-        # No chunk-level features: chunks table has only index columns
+        # No chunk-level model features, but word-feature aggregates are
+        # appended by default
+        extra = [c for c in chunks_df.columns
+                 if c not in ("chunk_idx", "chunk_label", "n_words")]
+        assert extra
+        assert all(
+            c.endswith(("_mean", "_sd", "_min", "_max")) for c in extra
+        )
+        assert "concreteness_mean" in chunks_df.columns
+
+    def test_lexical_norms_no_aggregates(self):
+        norms = LexicalNormsModel(device="cpu")
+        _, chunks_df = score_text(
+            "bright dark loud quiet", [norms], aggregate_words=False,
+            quiet=True,
+        )
         assert list(chunks_df.columns) == ["chunk_idx", "chunk_label", "n_words"]
 
 

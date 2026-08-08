@@ -213,6 +213,11 @@ def _detail_panels(word_cols: list[str], chunk_cols: list[str]) -> dict:
         panels["chunk"].append(
             {"id": "readability", "label": "Readability", "kind": "bars_norm", "features": readability}
         )
+    agg_means = [c for c in chunk_cols if c.endswith("_mean")]
+    if agg_means:
+        panels["chunk"].append(
+            {"id": "word_means", "label": "Word-feature means", "kind": "bars_norm", "features": agg_means}
+        )
     return panels
 
 

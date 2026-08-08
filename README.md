@@ -60,6 +60,9 @@ echo "The quick brown fox" | word2psy lexical_norms
 # All models
 word2psy --all input.txt -o features.csv
 
+# Sentence-level scoring: every sentence becomes its own chunk
+word2psy sentiment emotion input.txt --by-sentence -o features.csv
+
 # Visualize results
 word2psy viz timeseries features.csv -o timeseries.png
 word2psy viz heatmap features.csv -o heatmap.png
@@ -119,7 +122,9 @@ viz2psy's one-row-per-stimulus CSV layout at each level of analysis:
 - **`features_chunks.csv`** — one row per chunk: `chunk_idx`, `chunk_label`,
   `n_words`, any passthrough columns from CSV input, then one column per chunk-level
   feature — embeddings appear flat (`clip_text_000`...`clip_text_511`), exactly like a
-  viz2psy image CSV, so the two are directly comparable side by side.
+  viz2psy image CSV, so the two are directly comparable side by side. When word-level
+  models are run, per-chunk aggregates of their features are appended as
+  `{feature}_{mean,sd,min,max}` columns (disable with `--no-word-aggregates`).
 - **`features.meta.json`** — provenance sidecar: input stats, both output files,
   models, feature definitions, versions, device, and runtime.
 

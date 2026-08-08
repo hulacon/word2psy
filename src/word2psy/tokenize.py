@@ -18,6 +18,37 @@ def _is_punctuation(token: str) -> bool:
     return bool(re.fullmatch(r"[^\w]+", token))
 
 
+def split_by_sentence(
+    chunks: list[str],
+    chunk_labels: list[str] | None = None,
+) -> tuple[list[str], list[str], list[int]]:
+    """Split chunks into one chunk per sentence.
+
+    Returns
+    -------
+    sentences : list[str]
+        One entry per sentence, across all input chunks.
+    labels : list[str]
+        ``"{original_label}/s{j}"`` with j the sentence index within its
+        original chunk (original labels default to ``chunk_{i}``).
+    origin : list[int]
+        Index of the original chunk each sentence came from (for expanding
+        per-chunk passthrough data).
+    """
+    if chunk_labels is None:
+        chunk_labels = [f"chunk_{i}" for i in range(len(chunks))]
+
+    sentences: list[str] = []
+    labels: list[str] = []
+    origin: list[int] = []
+    for i, (chunk_text, label) in enumerate(zip(chunks, chunk_labels)):
+        for j, sentence in enumerate(nltk.sent_tokenize(chunk_text)):
+            sentences.append(sentence)
+            labels.append(f"{label}/s{j}")
+            origin.append(i)
+    return sentences, labels, origin
+
+
 def tokenize_text(
     text: str | list[str],
     *,
