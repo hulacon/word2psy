@@ -23,6 +23,9 @@ class CLAPTextModel(BaseModel):
 
     name = "clap_text"
     level = "chunk"
+    # Must match aud2psy's clap checkpoint string exactly — psytwill asserts
+    # equality before pairing the shared text/audio space.
+    checkpoint = CHECKPOINT
 
     def __init__(self, checkpoint: str = CHECKPOINT, device: str | None = None):
         super().__init__(device=device)

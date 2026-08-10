@@ -36,6 +36,10 @@ class BaseModel(ABC):
 
     name: str = ""
     level: str = ""  # "word", "chunk", or "context"
+    # Contract B §4.1: exact architecture+weights identifier for models with
+    # learned weights (e.g. "ViT-B-32/laion2b_s34b_b79k"); None for analytic
+    # models. Recorded in the output sidecar as ``checkpoint``.
+    checkpoint: str | None = None
 
     def __init__(self, device: str | None = None):
         if device:

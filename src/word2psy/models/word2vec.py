@@ -20,6 +20,7 @@ class Word2VecModel(BaseModel):
 
     name = "word2vec"
     level = "word"
+    checkpoint = "word2vec-google-news-300"  # gensim-data vector-set name
 
     def load(self) -> None:
         import os

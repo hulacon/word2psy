@@ -12,6 +12,9 @@ from word2psy.models.base import BaseModel
 
 logger = logging.getLogger(__name__)
 
+_DEFAULT_MODEL_NAME = "ViT-B-32"
+_DEFAULT_PRETRAINED = "laion2b_s34b_b79k"
+
 
 class CLIPTextModel(BaseModel):
     """Extract L2-normalised CLIP text embeddings.
@@ -21,16 +24,20 @@ class CLIPTextModel(BaseModel):
 
     name = "clip_text"
     level = "chunk"
+    # Must match viz2psy's clip checkpoint string exactly — psytwill asserts
+    # equality before pairing the shared text/image space.
+    checkpoint = f"{_DEFAULT_MODEL_NAME}/{_DEFAULT_PRETRAINED}"
 
     def __init__(
         self,
-        model_name: str = "ViT-B-32",
-        pretrained: str = "laion2b_s34b_b79k",
+        model_name: str = _DEFAULT_MODEL_NAME,
+        pretrained: str = _DEFAULT_PRETRAINED,
         device: str | None = None,
     ):
         super().__init__(device=device)
         self.model_name = model_name
         self.pretrained = pretrained
+        self.checkpoint = f"{model_name}/{pretrained}"
         self._tokenizer = None
 
     def load(self) -> None:

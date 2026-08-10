@@ -50,6 +50,22 @@ def get_model_version(model_name: str) -> str:
     return fallback or "unknown"
 
 
+def get_model_checkpoint(model_name: str) -> str | None:
+    """Return the model class's ``checkpoint`` attribute (Contract B §4.1).
+
+    Class-level defaults only — accurate for CLI runs, which never override
+    checkpoint arguments. API users constructing models with non-default
+    checkpoints should amend the sidecar themselves.
+    """
+    try:
+        from word2psy.cli import _load_model_class
+
+        cls = _load_model_class(model_name)
+        return getattr(cls, "checkpoint", None)
+    except Exception:
+        return None
+
+
 def get_feature_info(
     model_name: str, feature_names: list[str], level: str | None = None
 ) -> dict[str, Any]:
@@ -127,8 +143,11 @@ class MetadataBuilder:
         level: str | None = None,
     ) -> None:
         """Add model info after it completes."""
+        package_version = get_model_version(model_name)
         self.models[model_name] = {
-            "version": get_model_version(model_name),
+            "version": package_version,  # legacy key, one deprecation cycle
+            "package_version": package_version,
+            "checkpoint": get_model_checkpoint(model_name),
             "runtime_sec": round(runtime_sec, 3),
             "features": get_feature_info(model_name, feature_names, level=level),
         }
@@ -138,7 +157,10 @@ class MetadataBuilder:
     def build(self) -> dict[str, Any]:
         """Build the final metadata dict."""
         return {
-            "word2psy_version": get_version(),
+            "schema_version": "1.0",
+            "extractor": "word2psy",
+            "extractor_version": get_version(),
+            "word2psy_version": get_version(),  # legacy key, one deprecation cycle
             "created_at": self.created_at,
             "input": self.input_info,
             "output": self.output_info,

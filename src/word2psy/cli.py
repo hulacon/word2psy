@@ -331,6 +331,7 @@ def _crossmodal_main(argv: list[str]):
     print(top_matches(sim, k=args.top_k).to_string(index=False))
 
     if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
         sim.to_csv(args.output, float_format="%.6g")
         print(f"\nSaved similarity matrix to {args.output}")
 
@@ -591,6 +592,14 @@ def main():
         "--id-column",
         help="For CSV/TSV input: column to use as chunk labels.",
     )
+    parser.add_argument(
+        "--stimulus-id",
+        help=(
+            "Constant stimulus_id value for all output rows. Default: the "
+            "--id-column labels per chunk (CSV input), else the input "
+            "file's stem."
+        ),
+    )
 
     args = parser.parse_args()
 
@@ -672,8 +681,26 @@ def main():
         )
         total_time = time.time() - start
 
+        # Canonical stimulus identity (Contract B §4.1): the --id-column
+        # labels per chunk when CSV rows are the stimuli, else one constant
+        # id per input text.
+        if "stimulus_id" not in chunks_df.columns:
+            sid_chunks = sid_words = None
+            if args.stimulus_id is not None:
+                sid_chunks = sid_words = args.stimulus_id
+            elif args.id_column and "chunk_label" in chunks_df.columns:
+                sid_chunks = chunks_df["chunk_label"].astype(str)
+                by_chunk = dict(zip(chunks_df["chunk_idx"], sid_chunks))
+                sid_words = words_df["chunk_idx"].map(by_chunk)
+            elif inputs:
+                sid_chunks = sid_words = Path(inputs[0]).stem
+            if sid_chunks is not None:
+                chunks_df.insert(0, "stimulus_id", sid_chunks)
+                words_df.insert(0, "stimulus_id", sid_words)
+
         if args.output:
             stem = args.output.with_suffix("")
+            stem.parent.mkdir(parents=True, exist_ok=True)
             words_path = stem.parent / f"{stem.name}_words.csv"
             chunks_path = stem.parent / f"{stem.name}_chunks.csv"
 

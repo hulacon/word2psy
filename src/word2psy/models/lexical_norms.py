@@ -20,6 +20,9 @@ class LexicalNormsModel(BaseModel):
 
     name = "lexical_norms"
     level = "word"
+    # Trained probe: Ridge regressors (fit locally, cached) on the fastText
+    # crawl-300d-2M-subword backbone.
+    checkpoint = "crawl-300d-2M-subword+ridge"
 
     def __init__(self, device: str | None = None):
         # Device is not used (no GPU model), but we keep the interface

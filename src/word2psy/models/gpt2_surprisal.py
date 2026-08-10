@@ -97,6 +97,7 @@ class GPT2SurprisalModel(BaseModel):
 
     name = "gpt2_surprisal"
     level = "context"
+    checkpoint = "gpt2"  # Hugging Face model id
 
     def __init__(
         self,
@@ -107,6 +108,7 @@ class GPT2SurprisalModel(BaseModel):
     ):
         super().__init__(device=device)
         self.model_name = model_name
+        self.checkpoint = model_name
         self.max_context = max_context
         self.stride = stride
         self._tokenizer = None

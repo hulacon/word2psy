@@ -14,6 +14,7 @@ class SentenceEmbedModel(BaseModel):
 
     name = "minilm"
     level = "chunk"
+    checkpoint = "sentence-transformers/all-MiniLM-L6-v2"  # Hugging Face model id
 
     def __init__(
         self,
@@ -22,6 +23,7 @@ class SentenceEmbedModel(BaseModel):
     ):
         super().__init__(device=device)
         self.model_name = model_name
+        self.checkpoint = model_name
 
     def load(self) -> None:
         from sentence_transformers import SentenceTransformer

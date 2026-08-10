@@ -14,6 +14,7 @@ class FastTextModel(BaseModel):
 
     name = "fasttext"
     level = "word"
+    checkpoint = "crawl-300d-2M-subword"  # fastText vector-set name (.bin)
 
     def load(self) -> None:
         from word2psy.norms.train import load_fasttext

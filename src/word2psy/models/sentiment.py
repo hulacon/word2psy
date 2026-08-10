@@ -14,6 +14,7 @@ class SentimentModel(BaseModel):
 
     name = "sentiment"
     level = "chunk"
+    checkpoint = "cardiffnlp/twitter-roberta-base-sentiment-latest"  # HF model id
 
     def __init__(
         self,
@@ -22,6 +23,7 @@ class SentimentModel(BaseModel):
     ):
         super().__init__(device=device)
         self.model_name = model_name
+        self.checkpoint = model_name
         self._tokenizer = None
         self._labels: list[str] = []
 
