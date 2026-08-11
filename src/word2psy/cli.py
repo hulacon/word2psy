@@ -229,6 +229,49 @@ def resolve_scores_paths(path: Path) -> tuple[Path | None, Path | None]:
     return (words if words.exists() else None, chunks if chunks.exists() else None)
 
 
+def resolve_single_scores_path(path: Path, level: str | None = None) -> Path:
+    """Resolve a viz input path to the one CSV a single-table plot should read.
+
+    Accepts the same paths as :func:`resolve_scores_paths` — the base path given
+    to ``-o`` at scoring time (``scores.csv``) or either output file — plus any
+    other existing CSV, which is used as-is. ``level`` ("words"/"chunks") picks
+    a table explicitly; without it a base path that resolves to both prefers the
+    words table (word2psy's primary unit) and says which one it took. Exits with
+    a message if nothing usable is found.
+    """
+    words_path, chunks_path = resolve_scores_paths(path)
+    resolved = {"words": words_path, "chunks": chunks_path}
+
+    if level is not None:
+        chosen = resolved[level]
+        if chosen is None:
+            print(
+                f"Error: no {level} table found for {path} "
+                f"(looked for *_{level}.csv).",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        return chosen
+
+    # An explicit existing file wins, so arbitrary CSVs still work.
+    if path.is_file():
+        return path
+
+    found = [p for p in resolved.values() if p is not None]
+    if not found:
+        print(
+            f"Error: no scores files found for {path} "
+            f"(looked for *_words.csv / *_chunks.csv).",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    chosen = found[0]  # words first — see resolved above
+    other = " (use --level chunks for the chunks table)" if len(found) > 1 else ""
+    print(f"Reading {chosen}{other}")
+    return chosen
+
+
 def _viz_browse(args):
     """Handle 'word2psy viz browse'."""
     import pandas as pd
@@ -344,9 +387,19 @@ def _viz_main(argv: list[str]):
     )
     sub = parser.add_subparsers(dest="viz_cmd")
 
+    csv_help = "Scores CSV base path (scores.csv) or a *_words.csv / *_chunks.csv file."
+
+    def add_level(p):
+        p.add_argument(
+            "--level",
+            choices=["words", "chunks"],
+            help="Which table to read when given a base path (default: words).",
+        )
+
     # --- timeseries ---
     p_ts = sub.add_parser("timeseries", help="Plot features over word/chunk sequence.")
-    p_ts.add_argument("csv", type=Path, help="Input CSV from word2psy.")
+    p_ts.add_argument("csv", type=Path, help=csv_help)
+    add_level(p_ts)
     p_ts.add_argument("-o", "--output", type=Path, help="Save figure to file.")
     p_ts.add_argument("--features", nargs="+", help="Feature glob patterns.")
     p_ts.add_argument("--index-col", help="Column to use as x-axis.")
@@ -357,7 +410,8 @@ def _viz_main(argv: list[str]):
 
     # --- heatmap ---
     p_hm = sub.add_parser("heatmap", help="Correlation heatmap of features.")
-    p_hm.add_argument("csv", type=Path, help="Input CSV from word2psy.")
+    p_hm.add_argument("csv", type=Path, help=csv_help)
+    add_level(p_hm)
     p_hm.add_argument("-o", "--output", type=Path, help="Save figure to file.")
     p_hm.add_argument("--features", nargs="+", help="Feature glob patterns.")
     p_hm.add_argument("--method", choices=["pearson", "spearman"], default="pearson")
@@ -366,7 +420,8 @@ def _viz_main(argv: list[str]):
 
     # --- scatter ---
     p_sc = sub.add_parser("scatter", help="2D projection scatter plot.")
-    p_sc.add_argument("csv", type=Path, help="Input CSV from word2psy.")
+    p_sc.add_argument("csv", type=Path, help=csv_help)
+    add_level(p_sc)
     p_sc.add_argument("-o", "--output", type=Path, help="Save figure to file.")
     p_sc.add_argument("--features", nargs="+", help="Feature glob patterns.")
     p_sc.add_argument("--method", choices=["pca", "ppca", "umap", "tsne", "mds", "mds_nonmetric"], default="pca")
@@ -379,11 +434,7 @@ def _viz_main(argv: list[str]):
         "browse",
         help="Interactive HTML dashboard with per-word detail view.",
     )
-    p_br.add_argument(
-        "csv",
-        type=Path,
-        help="Scores CSV base path (scores.csv) or a *_words.csv / *_chunks.csv file.",
-    )
+    p_br.add_argument("csv", type=Path, help=csv_help)
     p_br.add_argument("-o", "--output", type=Path, help="Output HTML path.")
     p_br.add_argument("--title", help="Dashboard title.")
     p_br.add_argument(
@@ -400,7 +451,8 @@ def _viz_main(argv: list[str]):
 
     # --- recommend ---
     p_rec = sub.add_parser("recommend", help="Suggest visualizations for a CSV.")
-    p_rec.add_argument("csv", type=Path, help="Input CSV from word2psy.")
+    p_rec.add_argument("csv", type=Path, help=csv_help)
+    add_level(p_rec)
 
     args = parser.parse_args(argv)
 
@@ -414,7 +466,8 @@ def _viz_main(argv: list[str]):
 
     import pandas as pd
 
-    df = pd.read_csv(args.csv)
+    csv_path = resolve_single_scores_path(args.csv, args.level)
+    df = pd.read_csv(csv_path)
 
     if args.viz_cmd == "timeseries":
         from word2psy.viz.timeseries import plot_timeseries

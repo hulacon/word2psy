@@ -63,9 +63,11 @@ word2psy --all input.txt -o features.csv
 # Sentence-level scoring: every sentence becomes its own chunk
 word2psy sentiment emotion input.txt --by-sentence -o features.csv
 
-# Visualize results
+# Visualize results. Every viz subcommand accepts the base path you gave to -o
+# (features.csv) or either output file (features_words.csv / features_chunks.csv);
+# a base path reads the words table unless you ask for --level chunks.
 word2psy viz timeseries features.csv -o timeseries.png
-word2psy viz heatmap features.csv -o heatmap.png
+word2psy viz heatmap features.csv --level chunks -o heatmap.png
 word2psy viz scatter features.csv --method pca -o scatter.png
 word2psy viz recommend features.csv   # suggests plots for a given CSV
 

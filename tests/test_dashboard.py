@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from word2psy.cli import resolve_scores_paths
+from word2psy.cli import resolve_scores_paths, resolve_single_scores_path
 from word2psy.viz.dashboard import _is_scalar_col, create_dashboard
 
 
@@ -163,3 +163,48 @@ class TestResolveScoresPaths:
     def test_missing(self, tmp_path):
         words, chunks = resolve_scores_paths(tmp_path / "nope.csv")
         assert words is None and chunks is None
+
+
+class TestResolveSingleScoresPath:
+    def _touch(self, tmp_path, *names):
+        for name in names:
+            (tmp_path / name).write_text("x")
+
+    def test_base_path_prefers_words(self, tmp_path):
+        self._touch(tmp_path, "scores_words.csv", "scores_chunks.csv")
+        got = resolve_single_scores_path(tmp_path / "scores.csv")
+        assert got == tmp_path / "scores_words.csv"
+
+    def test_level_selects_chunks(self, tmp_path):
+        self._touch(tmp_path, "scores_words.csv", "scores_chunks.csv")
+        got = resolve_single_scores_path(tmp_path / "scores.csv", level="chunks")
+        assert got == tmp_path / "scores_chunks.csv"
+
+    def test_level_overrides_explicit_file(self, tmp_path):
+        self._touch(tmp_path, "scores_words.csv", "scores_chunks.csv")
+        got = resolve_single_scores_path(tmp_path / "scores_words.csv", level="chunks")
+        assert got == tmp_path / "scores_chunks.csv"
+
+    def test_base_path_falls_back_to_only_table(self, tmp_path):
+        self._touch(tmp_path, "scores_chunks.csv")
+        got = resolve_single_scores_path(tmp_path / "scores.csv")
+        assert got == tmp_path / "scores_chunks.csv"
+
+    def test_explicit_file_used_as_is(self, tmp_path):
+        self._touch(tmp_path, "arbitrary.csv")
+        got = resolve_single_scores_path(tmp_path / "arbitrary.csv")
+        assert got == tmp_path / "arbitrary.csv"
+
+    def test_explicit_words_file(self, tmp_path):
+        self._touch(tmp_path, "scores_words.csv")
+        got = resolve_single_scores_path(tmp_path / "scores_words.csv")
+        assert got == tmp_path / "scores_words.csv"
+
+    def test_missing_exits(self, tmp_path):
+        with pytest.raises(SystemExit):
+            resolve_single_scores_path(tmp_path / "nope.csv")
+
+    def test_missing_level_exits(self, tmp_path):
+        self._touch(tmp_path, "scores_words.csv")
+        with pytest.raises(SystemExit):
+            resolve_single_scores_path(tmp_path / "scores.csv", level="chunks")
