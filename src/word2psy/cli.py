@@ -114,6 +114,11 @@ MODEL_REGISTRY = {
         "CLAPTextModel",
         "512-dim CLAP text embeddings (shared space with aud2psy audio)",
     ),
+    "ebind_text": (
+        "word2psy.models.ebind_text",
+        "EBindTextModel",
+        "1024-dim EBind text embeddings (shared space with viz2psy ebind / aud2psy ebind_audio)",
+    ),
 }
 
 

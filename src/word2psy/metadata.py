@@ -29,6 +29,7 @@ def get_model_version(model_name: str) -> str:
     """Get version of the underlying model package."""
     version_map = {
         "clip_text": ("open_clip_torch", None),
+        "ebind_text": ("ebind", None),
         "lexical_norms": ("scikit-learn", "fasttext+ridge"),
         "gpt2_surprisal": ("transformers", None),
         "fasttext": ("fasttext-wheel", None),
