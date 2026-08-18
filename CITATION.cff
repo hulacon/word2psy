@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it using the metadata below,
+  and cite the papers and norm databases behind the specific models
+  you used (see the "Citing" and "Norm Sources" sections of README.md).
+type: software
+title: "word2psy: psychological and linguistic feature extraction from text"
+authors:
+  - family-names: Hutchinson
+    given-names: Ben
+    email: bhutch@uoregon.edu
+    affiliation: University of Oregon
+repository-code: "https://github.com/hulacon/word2psy"
+license: MIT
+version: 0.3.1
+date-released: 2026-08-18
+keywords:
+  - text features
+  - psycholinguistics
+  - lexical norms
+  - NLP
+  - psychology
+  - neuroscience

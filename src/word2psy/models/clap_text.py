@@ -6,7 +6,7 @@ in one shared space and can be directly compared (cosine similarity
 between a caption/transcript chunk and a stretch of soundtrack). Do not
 change the checkpoint, the L2 normalisation, or the `clap_text_{i:03d}`
 column naming without coordinating matching changes in aud2psy and
-psyquilt's COMPATIBLE_SPACES — the audio-side twin of the clip_text ↔
+psytwill's COMPATIBLE_SPACES — the audio-side twin of the clip_text ↔
 viz2psy contract.
 """
 

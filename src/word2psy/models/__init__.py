@@ -3,8 +3,18 @@
 
 def __getattr__(name):
     _registry = {
-        "CLIPTextModel": ".clip_text",
         "LexicalNormsModel": ".lexical_norms",
+        "WordformModel": ".wordform",
+        "FastTextModel": ".fasttext_embed",
+        "Word2VecModel": ".word2vec",
+        "GPT2SurprisalModel": ".gpt2_surprisal",
+        "SentimentModel": ".sentiment",
+        "EmotionModel": ".emotion",
+        "ReadabilityModel": ".readability",
+        "SentenceEmbedModel": ".sentence_embed",
+        "CLIPTextModel": ".clip_text",
+        "CLAPTextModel": ".clap_text",
+        "EBindTextModel": ".ebind_text",
     }
     if name in _registry:
         import importlib

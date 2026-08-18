@@ -7,16 +7,20 @@ frames. Text is scored through a unified command-line interface wrapping computa
 models from NLP and human psychology; results are stored as tabular CSV with metadata
 sidecars.
 
-A core design goal is **cross-modal comparability**: word2psy's CLIP text embeddings use
-the same OpenCLIP checkpoint as viz2psy's CLIP image embeddings (ViT-B-32,
-`laion2b_s34b_b79k`), so words and images can be compared directly in a shared 512-d
-space.
+A core design goal is **cross-modal comparability**. Three word2psy models embed text
+into spaces shared with the sister packages: `clip_text` uses the same OpenCLIP
+checkpoint as [viz2psy](https://github.com/hulacon/viz2psy)'s CLIP image embeddings
+(512-d), `clap_text` uses the same LAION-CLAP checkpoint as
+[aud2psy](https://github.com/hulacon/aud2psy)'s audio embeddings (512-d), and
+`ebind_text` shares EBind's 1024-d image–text–audio space with viz2psy `ebind` and
+aud2psy `ebind_audio` — so words can be compared directly with images and sounds.
 
 ## Features
 
 - **Unified CLI** for scoring text files, CSV/TSV stimulus lists, or stdin
 - **Word-level psycholinguistic norms** extrapolated to arbitrary English words
-- **CLIP text embeddings** directly comparable to viz2psy image embeddings
+- **Cross-modal embeddings** (CLIP, CLAP, EBind) directly comparable to viz2psy
+  image and aud2psy audio embeddings
 - **Tidy outputs**: word-per-row CSV + chunk-per-row CSV + JSON metadata sidecar
 - **Built-in visualization**: timeseries, correlation heatmaps, and 2-D projections
 - **Interactive dashboard**: a self-contained HTML explorer (`word2psy viz browse`)
@@ -35,13 +39,21 @@ uv venv --python 3.11
 uv pip install -e .
 ```
 
+The `ebind_text` model needs an extra dependency (the
+[EBind package](https://github.com/encord-team/ebind), installed from GitHub;
+its model weights are licensed CC-BY-NC-SA 4.0, non-commercial):
+
+```bash
+uv pip install -e ".[ebind]"
+```
+
 On first use, models download automatically to `~/.cache/word2psy` (override with
 `WORD2PSY_CACHE`): the fastText vectors are a ~2.4 GB download (7.2 GB on disk),
-word2vec ~1.7 GB, CLIP ~600 MB, GPT-2 ~550 MB, the sentiment and emotion RoBERTas
-~500 MB each, MiniLM ~90 MB, and the seven norm databases a few MB each. Norm
-regressors are trained locally on first use (a few minutes, one time). Models are
-loaded and freed one at a time, so peak memory is set by the largest requested model
-(fastText, ~7 GB) rather than the sum.
+word2vec ~1.7 GB, CLIP ~600 MB, CLAP ~2 GB, EBind several GB, GPT-2 ~550 MB, the
+sentiment and emotion RoBERTas ~500 MB each, MiniLM ~90 MB, and the seven norm
+databases a few MB each. Norm regressors are trained locally on first use (a few
+minutes, one time). Models are loaded and freed one at a time, so peak memory is set
+by the largest requested model (fastText, ~7 GB) rather than the sum.
 
 ## Quick Start
 
@@ -104,6 +116,8 @@ words_df, chunks_df = score_text(
 | `readability` | chunk | 7 features | Flesch, Flesch-Kincaid, Gunning Fog, SMOG, Coleman-Liau, ARI, Dale-Chall |
 | `minilm` | chunk | 384-d embedding | all-MiniLM-L6-v2 sentence embeddings — text-only semantic space, sharper than CLIP for verbal similarity |
 | `clip_text` | chunk | 512-d embedding | OpenCLIP ViT-B-32 (`laion2b_s34b_b79k`) text embeddings, L2-normalized, in the same space as viz2psy image embeddings |
+| `clap_text` | chunk | 512-d embedding | LAION-CLAP (`laion/larger_clap_music_and_speech`) text embeddings, in the same space as aud2psy `clap` audio embeddings |
+| `ebind_text` | chunk | 1024-d embedding | EBind text-arm embeddings (`encord-team/ebind-full`, Perception Encoder text tower), in one shared space with viz2psy `ebind` images and aud2psy `ebind_audio` audio; requires the `ebind` extra |
 
 Levels: **word** features depend on the word type alone and land in the words CSV;
 **context** features are word-level but depend on surrounding text (no
@@ -134,11 +148,19 @@ The two tables join on `chunk_idx`. A wordlist CSV scored with `--text-column`
 makes each word its own chunk, so `features_chunks.csv` becomes a per-word table
 with CLIP embeddings — ready for cross-modal comparison with viz2psy output.
 
-## Cross-modal similarity with viz2psy
+## Cross-modal similarity
 
-`clip_text` shares its checkpoint with viz2psy's `clip` image model, so text and
-image embeddings live in one 512-d space. `word2psy crossmodal` joins the two
-tools' CSVs into a text × image cosine-similarity matrix:
+word2psy participates in three shared embedding spaces, each guaranteed by an
+identical checkpoint on both sides:
+
+| Space | word2psy model | Partner | Dims |
+|-------|----------------|---------|------|
+| CLIP (text ↔ image) | `clip_text` | viz2psy `clip` | 512 |
+| CLAP (text ↔ audio) | `clap_text` | aud2psy `clap` | 512 |
+| EBind (text ↔ image ↔ audio) | `ebind_text` | viz2psy `ebind`, aud2psy `ebind_audio` | 1024 |
+
+`word2psy crossmodal` joins two tools' CSVs into a cosine-similarity matrix, e.g.
+text × image with CLIP:
 
 ```bash
 viz2psy clip images/*.png -o image_scores.csv          # in viz2psy
@@ -149,6 +171,23 @@ word2psy crossmodal text_scores.csv image_scores.csv -o similarity.csv
 It prints the top-k images per text chunk and saves the full matrix. Raw CLIP
 text–image similarities sit in a narrow band (matches ≈ 0.25–0.35); relative
 comparisons within your stimulus set are what carry signal.
+
+One EBind caveat from our pilots: for isolated spoken words, EBind's audio arm
+hears generic speech rather than word identity — route spoken-word stimuli
+through `ebind_text` (their transcriptions), not aud2psy `ebind_audio`.
+
+## Related packages
+
+word2psy is the verbal member of a family of stimulus feature extractors that
+share one output convention (per-model column prefixes, `stimulus_id` keys,
+provenance sidecars):
+
+| Package | Modality |
+|---------|----------|
+| [viz2psy](https://github.com/hulacon/viz2psy) | Images and video frames |
+| [aud2psy](https://github.com/hulacon/aud2psy) | Audio and speech |
+| [word2psy](https://github.com/hulacon/word2psy) | Words and text (this package) |
+| [psytwill](https://github.com/hulacon/psytwill) | Downstream consumer: combines and compares features across the three extractors |
 
 ## Norm Sources
 
@@ -164,6 +203,26 @@ originals if you use the corresponding features):
 - Diveica, Pexman, & Binney (2023) — socialness
 - Pexman et al. (2019) — body-object interaction
 - Speer et al., [wordfreq](https://github.com/rspeer/wordfreq) — Zipf frequency
+
+## Citing
+
+To cite word2psy itself, see [CITATION.cff](CITATION.cff) (GitHub's "Cite this
+repository" button renders it).
+
+If you use word2psy in your research, please also cite the papers behind the
+models you used — the norm databases above for `lexical_norms`, and:
+
+- **fastText** (`fasttext`, and the embedding basis of `lexical_norms`): Bojanowski, P., Grave, E., Joulin, A., & Mikolov, T. (2017). Enriching word vectors with subword information. *TACL, 5*, 135–146. [arXiv:1607.04606](https://arxiv.org/abs/1607.04606); vectors: Mikolov, T., et al. (2018). Advances in pre-training distributed word representations. *LREC 2018*. [arXiv:1712.09405](https://arxiv.org/abs/1712.09405)
+- **word2vec** (`word2vec`): Mikolov, T., Sutskever, I., Chen, K., Corrado, G., & Dean, J. (2013). Distributed representations of words and phrases and their compositionality. *NeurIPS 2013*. [arXiv:1310.4546](https://arxiv.org/abs/1310.4546)
+- **OLD20** (`wordform`): Yarkoni, T., Balota, D., & Yap, M. (2008). Moving beyond Coltheart's N: A new measure of orthographic similarity. *Psychonomic Bulletin & Review, 15*(5), 971–979. [doi:10.3758/PBR.15.5.971](https://doi.org/10.3758/PBR.15.5.971); syllable/phoneme counts use the [CMU Pronouncing Dictionary](http://www.speech.cs.cmu.edu/cgi-bin/cmudict)
+- **GPT-2** (`gpt2_surprisal`): Radford, A., Wu, J., Child, R., Luan, D., Amodei, D., & Sutskever, I. (2019). Language models are unsupervised multitask learners. OpenAI. [Report](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)
+- **Twitter-RoBERTa sentiment** (`sentiment`): Loureiro, D., Barbieri, F., Neves, L., Espinosa Anke, L., & Camacho-Collados, J. (2022). TimeLMs: Diachronic language models from Twitter. *ACL 2022 (demo)*. [arXiv:2202.03829](https://arxiv.org/abs/2202.03829); benchmark: Barbieri, F., et al. (2020). TweetEval. *Findings of EMNLP 2020*. [arXiv:2010.12421](https://arxiv.org/abs/2010.12421)
+- **GoEmotions** (`emotion`): Demszky, D., et al. (2020). GoEmotions: A dataset of fine-grained emotions. *ACL 2020*. [arXiv:2005.00547](https://arxiv.org/abs/2005.00547)
+- **Readability metrics** (`readability`): computed with [textstat](https://github.com/textstat/textstat); the formulas are the classic ones — Flesch (1948), Kincaid et al. (1975), Gunning (1952), McLaughlin (1969, SMOG), Coleman & Liau (1975), Senter & Smith (1967, ARI), and Dale & Chall (1948; Chall & Dale, 1995)
+- **MiniLM** (`minilm`): Wang, W., et al. (2020). MiniLM: Deep self-attention distillation for task-agnostic compression of pre-trained transformers. *NeurIPS 2020*. [arXiv:2002.10957](https://arxiv.org/abs/2002.10957); via sentence-transformers: Reimers, N., & Gurevych, I. (2019). Sentence-BERT. *EMNLP 2019*. [arXiv:1908.10084](https://arxiv.org/abs/1908.10084)
+- **CLIP** (`clip_text`, architecture): Radford, A., et al. (2021). Learning transferable visual models from natural language supervision. *ICML 2021*. [arXiv:2103.00020](https://arxiv.org/abs/2103.00020); weights (`laion2b_s34b_b79k`): Cherti, M., et al. (2023). Reproducible scaling laws for contrastive language-image learning. *CVPR 2023*. [arXiv:2212.07143](https://arxiv.org/abs/2212.07143); Ilharco, G., et al. (2021). OpenCLIP. [doi:10.5281/zenodo.5143773](https://doi.org/10.5281/zenodo.5143773)
+- **CLAP** (`clap_text`): Wu, Y., Chen, K., Zhang, T., Hui, Y., Berg-Kirkpatrick, T., & Dubnov, S. (2023). Large-scale contrastive language-audio pretraining with feature fusion and keyword-to-caption augmentation. *ICASSP 2023*. [arXiv:2211.06687](https://arxiv.org/abs/2211.06687)
+- **EBind** (`ebind_text`): Broadbent, J., Cohen, F., Hvilshøj, F., Landau, E., & Sasoglu, E. (2025). EBind: A practical approach to space binding. [arXiv:2511.14229](https://arxiv.org/abs/2511.14229); text arm is the Perception Encoder: Bolya, D., et al. (2025). Perception Encoder: The best visual embeddings are not at the output of the network. *NeurIPS 2025*. [arXiv:2504.13181](https://arxiv.org/abs/2504.13181)
 
 ## Hardware Requirements
 

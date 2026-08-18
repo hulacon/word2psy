@@ -227,6 +227,17 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         timeseries_mode="none",
         column_patterns=["clap_text_*"],
     ),
+    "ebind_text": FeatureConfig(
+        name="ebind_text",
+        description="1024-dim EBind text embeddings (shared space with viz2psy/aud2psy)",
+        feature_type="embedding",
+        n_dims=1024,
+        level="chunk",
+        timeseries=False,
+        mds_clustering=True,
+        timeseries_mode="none",
+        column_patterns=["ebind_text_*"],
+    ),
     # Pseudo-model: pipeline-generated per-chunk aggregates of word-level
     # features ({feature}_{mean,sd,min,max}; see pipeline.aggregate_word_features)
     "word_aggregates": FeatureConfig(

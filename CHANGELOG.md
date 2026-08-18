@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-08-18
+
+Housekeeping release for public use — documentation, packaging metadata, and
+citations; no feature-output changes.
+
+### Added
+
+- `ebind` optional-dependency extra (the GitHub-only `ebind` package was
+  previously undeclared, so `ebind_text` — and therefore `--all` — failed
+  on a clean install).
+- README rows and cross-modal documentation for `clap_text` and
+  `ebind_text` (both previously absent from the README); the cross-modal
+  section now covers all three shared spaces (CLIP, CLAP, EBind).
+- `CITATION.cff` for citing word2psy itself.
+- README "Related packages" section (viz2psy, aud2psy, psytwill).
+- "Citing" section with full references for every model (the norm
+  databases were already cited; the neural models were not).
+
+### Fixed
+
+- `word2psy.models` lazy registry listed only 2 of the 12 model classes;
+  all 12 are now importable from `word2psy.models`.
+- `viz` feature detection (`FEATURE_CONFIGS`) was missing an `ebind_text`
+  entry, so its columns went unrecognized in dashboards (and the contract
+  test failed).
+- `requires-python` now `>=3.10,<3.13` to match the documented fastText
+  constraint (previously pip would install on 3.13 and fail to build).
+- Removed unused `setuptools-scm` build requirement.
+- CLAUDE.md model/norm counts refreshed; `psyquilt` corrected to
+  `psytwill`.
+
 ## [0.3.0] - 2026-08-17
 
 ### Added

@@ -24,7 +24,7 @@ matching change in viz2psy.
 Likewise `CLAPTextModel` (added Aug 2026) shares the **LAION-CLAP checkpoint
 `laion/larger_clap_music_and_speech` with aud2psy's `clap` audio model** — text and
 soundtrack embeddings in one 512-d space, `clap_text_{i:03d}` columns, paired by
-psyquilt's `COMPATIBLE_SPACES`. Same coordination rule: don't touch checkpoint,
+psytwill's `COMPATIBLE_SPACES`. Same coordination rule: don't touch checkpoint,
 normalization, or naming unilaterally. (transformers ≥ 5 note: `get_text_features`
 returns a ModelOutput; the projection is `pooler_output`.)
 
@@ -37,7 +37,7 @@ returns a ModelOutput; the projection is `pooler_output`.)
   (cuda → mps → cpu). `unload()` frees weights — the pipeline unloads each model after
   scoring so peak RAM is one model at a time (the machine has 16 GB; fastText alone is
   ~7 GB resident).
-- **`models/`** — implemented (11): word-level `lexical_norms` (23 features),
+- **`models/`** — implemented (12, including chunk-level `clap_text` and `ebind_text`): word-level `lexical_norms` (23 features),
   `wordform` (length/syllables/phonemes/OLD20), `fasttext` (300-d, reuses the norms
   backbone), `word2vec` (300-d GoogleNews via gensim, NaN for OOV); context-level
   `gpt2_surprisal` (bits, BOS-prepended, strided beyond 1024 tokens); chunk-level
@@ -67,8 +67,9 @@ returns a ModelOutput; the projection is `pooler_output`.)
   image.csv -o sim.csv --top-k N` (text path goes through the same
   `resolve_scores_paths` as `viz browse`).
 - **`norms/`** — the lexical-norms subsystem:
-  - `download.py` fetches 5 public norm databases (Brysbaert concreteness, NRC VAD,
-    Kuperman AoA, Glasgow imageability, Lancaster sensorimotor) and caches them as
+  - `download.py` fetches 7 public norm databases (Brysbaert concreteness, NRC VAD,
+    Kuperman AoA, Glasgow, socialness, body-object interaction, Lancaster
+    sensorimotor) and caches them as
     parquet. `NORM_SOURCES` holds URLs + parsing specs.
   - `train.py` fits `RidgeCV` regressors on fastText `crawl-300d-2M-subword` vectors to
     extrapolate each norm to arbitrary words; caches fitted models as joblib.
@@ -82,7 +83,7 @@ returns a ModelOutput; the projection is `pooler_output`.)
     embedding→norm extrapolation results.
 - **`viz/`** — matplotlib/seaborn plots: `timeseries`, `heatmap` (feature correlations),
   `scatter` (PCA/PPCA/UMAP/t-SNE/MDS projections), plus `feature_config.py` which
-  detects which models produced a CSV's columns (all 10 models, with word/chunk
+  detects which models produced a CSV's columns (all 12 models, with word/chunk
   `level` awareness) and recommends visualizations. `dashboard.py` builds the
   `viz browse` interactive HTML dashboard: projections and per-row data are
   precomputed in Python and embedded as JSON into a self-contained HTML template
@@ -190,7 +191,7 @@ Ordered; items become "next up" as their predecessors land.
    at ../viz2psy/.venv was built by installing deps minus deepgaze, then
    `uv pip install -e . --no-deps` (+ plotly/kaleido) — saliency won't run
    there but everything else does.
-4. **Model expansion** (done Aug 2026 — 10 models; the model space is considered
+4. **Model expansion** (done Aug 2026 — 12 models; the model space is considered
    feature-complete for dashboard design). Deliberately deferred: topics, NER, moral
    foundations, LIWC-style categories, GloVe. Note for dashboard: all current model
    outputs are numeric — adding categorical outputs (POS tags, captions) later would

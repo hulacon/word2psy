@@ -1,14 +1,14 @@
 [build-system]
-requires = ["setuptools>=64", "setuptools-scm"]
+requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "word2psy"
-version = "0.3.0"
+version = "0.3.1"
 description = "Extract psychological and linguistic features from text using multiple computational models"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.13"
 authors = [
     {name = "Ben Hutchinson", email = "bhutch@uoregon.edu"},
 ]
@@ -56,6 +56,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ipython"]
+ebind = ["ebind @ git+https://github.com/encord-team/ebind"]
 
 [project.scripts]
 word2psy = "word2psy.cli:main"
