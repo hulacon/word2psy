@@ -7,7 +7,7 @@ type: software
 title: "word2psy: psychological and linguistic feature extraction from text"
 authors:
   - family-names: Hutchinson
-    given-names: Ben
+    given-names: J. Benjamin
     email: bhutch@uoregon.edu
     affiliation: University of Oregon
 repository-code: "https://github.com/hulacon/word2psy"
