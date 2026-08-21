@@ -24,7 +24,7 @@ class TestPipelineBasic:
         words_df, chunks_df = score_text("The dog chased the cat.", models, quiet=True)
         assert isinstance(words_df, pd.DataFrame)
         assert "word" in words_df.columns
-        assert "concreteness" in words_df.columns
+        assert "lexical_norms_concreteness" in words_df.columns
         assert len(words_df) > 0
 
     def test_chunk_embeddings_in_chunks_df(self, models):
@@ -43,7 +43,7 @@ class TestPipelineBasic:
     def test_word_features_vary_per_word(self, models):
         words_df, _ = score_text("The enormous tiny cat.", models, quiet=True)
         # Different words should generally have different concreteness
-        conc = words_df["concreteness"].tolist()
+        conc = words_df["lexical_norms_concreteness"].tolist()
         assert len(set(conc)) > 1  # Not all identical
 
     def test_output_has_correct_structure(self, models):
@@ -66,8 +66,8 @@ class TestPipelineWordOnly:
         words_df, chunks_df = score_text(
             "bright dark loud quiet", [norms], quiet=True
         )
-        assert "concreteness" in words_df.columns
-        assert "zipf_frequency" in words_df.columns
+        assert "lexical_norms_concreteness" in words_df.columns
+        assert "lexical_norms_zipf_frequency" in words_df.columns
         # No chunk-level model features, but word-feature aggregates are
         # appended by default
         extra = [c for c in chunks_df.columns
@@ -76,7 +76,7 @@ class TestPipelineWordOnly:
         assert all(
             c.endswith(("_mean", "_sd", "_min", "_max")) for c in extra
         )
-        assert "concreteness_mean" in chunks_df.columns
+        assert "lexical_norms_concreteness_mean" in chunks_df.columns
 
     def test_lexical_norms_no_aggregates(self):
         norms = LexicalNormsModel(device="cpu")
@@ -94,4 +94,4 @@ class TestPipelineChunkOnly:
         emb_cols = [c for c in chunks_df.columns if c.startswith("clip_text_")]
         assert len(emb_cols) == 512
         # No word-level features added (only index columns)
-        assert "concreteness" not in words_df.columns
+        assert "lexical_norms_concreteness" not in words_df.columns

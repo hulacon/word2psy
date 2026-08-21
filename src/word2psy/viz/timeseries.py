@@ -30,7 +30,7 @@ def get_feature_columns(
     ----------
     df : pd.DataFrame
     patterns : list of str, optional
-        Glob patterns to match (e.g., ["concreteness", "sensorimotor_*"]).
+        Glob patterns to match (e.g., ["lexical_norms_concreteness", "lexical_norms_sensorimotor_*"]).
         If None, returns all numeric columns except common ID columns.
     exclude : list of str, optional
         Columns to exclude.
@@ -71,7 +71,7 @@ def plot_timeseries(
     df : pd.DataFrame
         DataFrame with an index column and feature columns.
     features : list of str, optional
-        Features to plot. Supports glob patterns (e.g., "sensorimotor_*").
+        Features to plot. Supports glob patterns (e.g., "lexical_norms_sensorimotor_*").
         If None, plots all scalar features (not high-dim embeddings).
     index_col : str, optional
         Name of the index column. If None, auto-detects from DataFrame

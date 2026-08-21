@@ -21,17 +21,17 @@ def _make_words_df(n=40, with_embeddings=True, rng_seed=0):
         "chunk_label": np.repeat([f"chunk{i}" for i in range(n // 20)], 20),
         "onset": np.nan,
         "offset": np.nan,
-        "concreteness": rng.uniform(1, 5, n),
-        "valence": rng.uniform(0, 1, n),
-        "arousal": rng.uniform(0, 1, n),
-        "zipf_frequency": rng.uniform(1, 7, n),
-        "length": rng.randint(2, 12, n).astype(float),
-        "n_syllables": rng.randint(1, 5, n).astype(float),
-        "old20": rng.uniform(1, 3, n),
+        "lexical_norms_concreteness": rng.uniform(1, 5, n),
+        "lexical_norms_valence": rng.uniform(0, 1, n),
+        "lexical_norms_arousal": rng.uniform(0, 1, n),
+        "lexical_norms_zipf_frequency": rng.uniform(1, 7, n),
+        "wordform_length": rng.randint(2, 12, n).astype(float),
+        "wordform_n_syllables": rng.randint(1, 5, n).astype(float),
+        "wordform_old20": rng.uniform(1, 3, n),
         "gpt2_surprisal": rng.uniform(0, 25, n),
     }
     for dim in ["touch", "hearing", "vision"]:
-        data[f"sensorimotor_{dim}"] = rng.uniform(0, 5, n)
+        data[f"lexical_norms_sensorimotor_{dim}"] = rng.uniform(0, 5, n)
     if with_embeddings:
         for i in range(20):
             data[f"fasttext_{i:03d}"] = rng.randn(n)
@@ -65,9 +65,9 @@ class TestScalarColDetection:
         assert not _is_scalar_col("clip_text_511")
 
     def test_scalar_cols_included(self):
-        assert _is_scalar_col("concreteness")
+        assert _is_scalar_col("lexical_norms_concreteness")
         assert _is_scalar_col("sensorimotor_touch")
-        assert _is_scalar_col("old20")
+        assert _is_scalar_col("wordform_old20")
         assert _is_scalar_col("gpt2_surprisal")
 
 

@@ -38,24 +38,24 @@ def word_df():
         "chunk_label": np.repeat([f"chunk_{i}" for i in range(5)], 10),
         "onset": np.nan,
         "offset": np.nan,
-        "concreteness": rng.uniform(1, 5, n),
-        "valence": rng.uniform(0, 1, n),
-        "arousal": rng.uniform(0, 1, n),
-        "dominance": rng.uniform(0, 1, n),
-        "age_of_acquisition": rng.uniform(2, 15, n),
-        "imageability": rng.uniform(1, 7, n),
-        "zipf_frequency": rng.uniform(1, 7, n),
-        "sensorimotor_touch": rng.uniform(0, 5, n),
-        "sensorimotor_hearing": rng.uniform(0, 5, n),
-        "sensorimotor_smell": rng.uniform(0, 5, n),
-        "sensorimotor_taste": rng.uniform(0, 5, n),
-        "sensorimotor_vision": rng.uniform(0, 5, n),
-        "sensorimotor_interoception": rng.uniform(0, 5, n),
-        "sensorimotor_mouth": rng.uniform(0, 5, n),
-        "sensorimotor_hand": rng.uniform(0, 5, n),
-        "sensorimotor_foot": rng.uniform(0, 5, n),
-        "sensorimotor_head": rng.uniform(0, 5, n),
-        "sensorimotor_torso": rng.uniform(0, 5, n),
+        "lexical_norms_concreteness": rng.uniform(1, 5, n),
+        "lexical_norms_valence": rng.uniform(0, 1, n),
+        "lexical_norms_arousal": rng.uniform(0, 1, n),
+        "lexical_norms_dominance": rng.uniform(0, 1, n),
+        "lexical_norms_age_of_acquisition": rng.uniform(2, 15, n),
+        "lexical_norms_imageability": rng.uniform(1, 7, n),
+        "lexical_norms_zipf_frequency": rng.uniform(1, 7, n),
+        "lexical_norms_sensorimotor_touch": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_hearing": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_smell": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_taste": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_vision": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_interoception": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_mouth": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_hand": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_foot": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_head": rng.uniform(0, 5, n),
+        "lexical_norms_sensorimotor_torso": rng.uniform(0, 5, n),
     })
 
 
@@ -136,11 +136,11 @@ class TestFeatureConfig:
 
     def test_level_detection(self):
         detected = detect_models_in_dataframe(
-            ["concreteness", "sentiment_positive"], level="word"
+            ["lexical_norms_concreteness", "sentiment_positive"], level="word"
         )
         assert detected == ["lexical_norms"]
         detected = detect_models_in_dataframe(
-            ["concreteness", "sentiment_positive"], level="chunk"
+            ["lexical_norms_concreteness", "sentiment_positive"], level="chunk"
         )
         assert detected == ["sentiment"]
 
@@ -160,9 +160,9 @@ class TestFeatureConfig:
 
     def test_get_timeseries_features(self, word_df):
         ts_feats = get_timeseries_features(word_df.columns.tolist())
-        assert "concreteness" in ts_feats
-        assert "valence" in ts_feats
-        assert "sensorimotor_touch" in ts_feats
+        assert "lexical_norms_concreteness" in ts_feats
+        assert "lexical_norms_valence" in ts_feats
+        assert "lexical_norms_sensorimotor_touch" in ts_feats
         # Embeddings should not appear
         assert not any(f.startswith("clip_text_") for f in ts_feats)
 
@@ -232,17 +232,17 @@ class TestProjection:
 class TestTimeseries:
     def test_get_feature_columns_default(self, word_df):
         cols = get_feature_columns(word_df)
-        assert "concreteness" in cols
+        assert "lexical_norms_concreteness" in cols
         assert "word_idx" not in cols
         assert "onset" not in cols
 
     def test_get_feature_columns_pattern(self, word_df):
-        cols = get_feature_columns(word_df, patterns=["sensorimotor_*"])
-        assert all(c.startswith("sensorimotor_") for c in cols)
+        cols = get_feature_columns(word_df, patterns=["lexical_norms_sensorimotor_*"])
+        assert all(c.startswith("lexical_norms_sensorimotor_") for c in cols)
         assert len(cols) == 11
 
     def test_plot_returns_figure(self, word_df):
-        fig = plot_timeseries(word_df, features=["concreteness", "valence"])
+        fig = plot_timeseries(word_df, features=["lexical_norms_concreteness", "lexical_norms_valence"])
         assert isinstance(fig, plt.Figure)
         plt.close(fig)
 
@@ -252,12 +252,12 @@ class TestTimeseries:
             plot_timeseries(chunk_df)
 
     def test_plot_with_rolling(self, word_df):
-        fig = plot_timeseries(word_df, features=["concreteness"], rolling_window=5)
+        fig = plot_timeseries(word_df, features=["lexical_norms_concreteness"], rolling_window=5)
         assert isinstance(fig, plt.Figure)
         plt.close(fig)
 
     def test_plot_with_diff(self, word_df):
-        fig = plot_timeseries(word_df, features=["concreteness"], show_diff=True)
+        fig = plot_timeseries(word_df, features=["lexical_norms_concreteness"], show_diff=True)
         assert isinstance(fig, plt.Figure)
         plt.close(fig)
 
@@ -276,7 +276,7 @@ class TestHeatmap:
         plt.close(fig)
 
     def test_plot_with_patterns(self, word_df):
-        fig = plot_heatmap(word_df, features=["concreteness", "valence", "arousal"])
+        fig = plot_heatmap(word_df, features=["lexical_norms_concreteness", "lexical_norms_valence", "lexical_norms_arousal"])
         assert isinstance(fig, plt.Figure)
         plt.close(fig)
 
@@ -295,7 +295,7 @@ class TestHeatmap:
 
 class TestScatter:
     def test_plot_returns_figure(self, word_df):
-        fig = plot_scatter(word_df, features=["concreteness", "valence", "arousal"])
+        fig = plot_scatter(word_df, features=["lexical_norms_concreteness", "lexical_norms_valence", "lexical_norms_arousal"])
         assert isinstance(fig, plt.Figure)
         plt.close(fig)
 

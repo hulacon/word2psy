@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-20
+
+**Breaking:** two models' feature columns are renamed. `lexical_norms` and
+`wordform` emitted bare column names (`valence`, `concreteness`,
+`zipf_frequency`, `length`, `old20`, ...) in violation of Contract B §4.1,
+which requires every feature column to start with its model's declared
+prefix. psytwill attributes a column to a model by that prefix and nothing
+else, so all 27 columns landed in its null-model bucket — 0 of 16 attributed
+in the first non-embedding extraction ever run against the new layout
+(MMMData, 2026-08-20). Every earlier extraction used only embedding models,
+whose columns are prefixed by construction, which is why it went unseen.
+
+### Changed
+
+- `lexical_norms` now emits `lexical_norms_<dimension>` for all 23 columns
+  (`lexical_norms_valence`, `lexical_norms_sensorimotor_touch`,
+  `lexical_norms_zipf_frequency`, ...).
+- `wordform` now emits `wordform_length`, `wordform_n_syllables`,
+  `wordform_n_phonemes`, `wordform_old20`.
+- `viz` feature configs, the dashboard's scalar lists, and the docstring
+  examples follow the new names.
+
+No legacy-alias shim ships with this release: unlike viz2psy 0.6.0's column
+rename, no extraction of these two models existed on disk anywhere at the
+time of the change, so there is nothing to migrate. Re-extract rather than
+rename in place (§7).
+
+### Added
+
+- `tests/test_column_prefixes.py` — asserts, per model, that every emitted
+  non-reserved column starts with the model's registry name. Stubs the
+  regressors and fastText so it needs none of the ~7 GB of weights, and
+  carries a mutation test proving the assertion has teeth. This is the check
+  whose absence let the defect ship: the family-wide `stimfeat_preflight.py`
+  validates that the *declared* prefix namespace is collision-free and never
+  looks at an emitted column.
+
 ## [0.3.1] - 2026-08-18
 
 Housekeeping release for public use — documentation, packaging metadata, and

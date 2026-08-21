@@ -9,29 +9,29 @@ import pytest
 from word2psy.models.lexical_norms import LexicalNormsModel
 
 EXPECTED_FEATURES = [
-    "concreteness",
-    "valence",
-    "arousal",
-    "dominance",
-    "age_of_acquisition",
-    "imageability",
-    "sensorimotor_touch",
-    "sensorimotor_hearing",
-    "sensorimotor_smell",
-    "sensorimotor_taste",
-    "sensorimotor_vision",
-    "sensorimotor_interoception",
-    "sensorimotor_mouth",
-    "sensorimotor_hand",
-    "sensorimotor_foot",
-    "sensorimotor_head",
-    "sensorimotor_torso",
-    "familiarity",
-    "semantic_size",
-    "gender_association",
-    "socialness",
-    "body_object_interaction",
-    "zipf_frequency",
+    "lexical_norms_concreteness",
+    "lexical_norms_valence",
+    "lexical_norms_arousal",
+    "lexical_norms_dominance",
+    "lexical_norms_age_of_acquisition",
+    "lexical_norms_imageability",
+    "lexical_norms_sensorimotor_touch",
+    "lexical_norms_sensorimotor_hearing",
+    "lexical_norms_sensorimotor_smell",
+    "lexical_norms_sensorimotor_taste",
+    "lexical_norms_sensorimotor_vision",
+    "lexical_norms_sensorimotor_interoception",
+    "lexical_norms_sensorimotor_mouth",
+    "lexical_norms_sensorimotor_hand",
+    "lexical_norms_sensorimotor_foot",
+    "lexical_norms_sensorimotor_head",
+    "lexical_norms_sensorimotor_torso",
+    "lexical_norms_familiarity",
+    "lexical_norms_semantic_size",
+    "lexical_norms_gender_association",
+    "lexical_norms_socialness",
+    "lexical_norms_body_object_interaction",
+    "lexical_norms_zipf_frequency",
 ]
 
 
@@ -62,16 +62,16 @@ class TestLexicalNormsModel:
     def test_concrete_word_has_high_concreteness(self, norms_model):
         scores = norms_model.predict("table")
         # Table is highly concrete; score should be above midpoint (2.5 on 1-5 scale)
-        assert scores["concreteness"] > 2.5
+        assert scores["lexical_norms_concreteness"] > 2.5
 
     def test_abstract_word_has_lower_concreteness(self, norms_model):
-        concrete = norms_model.predict("hammer")["concreteness"]
-        abstract = norms_model.predict("freedom")["concreteness"]
+        concrete = norms_model.predict("hammer")["lexical_norms_concreteness"]
+        abstract = norms_model.predict("freedom")["lexical_norms_concreteness"]
         assert concrete > abstract
 
     def test_frequency_common_vs_rare(self, norms_model):
-        common = norms_model.predict("the")["zipf_frequency"]
-        rare = norms_model.predict("defenestrate")["zipf_frequency"]
+        common = norms_model.predict("the")["lexical_norms_zipf_frequency"]
+        rare = norms_model.predict("defenestrate")["lexical_norms_zipf_frequency"]
         assert common > rare
 
     def test_predict_batch(self, norms_model):

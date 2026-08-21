@@ -87,10 +87,10 @@ class WordformModel(BaseModel):
             syllables, phonemes = self._counts(word)
             results.append(
                 {
-                    "length": float(len(word)),
-                    "n_syllables": syllables,
-                    "n_phonemes": phonemes,
-                    "old20": float(dist),
+                    "wordform_length": float(len(word)),
+                    "wordform_n_syllables": syllables,
+                    "wordform_n_phonemes": phonemes,
+                    "wordform_old20": float(dist),
                 }
             )
         return results

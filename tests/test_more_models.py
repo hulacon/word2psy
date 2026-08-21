@@ -55,23 +55,23 @@ class TestWordform:
 
     def test_basic_counts(self, model):
         scores = model.predict("cat")
-        assert scores["length"] == 3
-        assert scores["n_syllables"] == 1
-        assert scores["n_phonemes"] == 3  # K AE T
+        assert scores["wordform_length"] == 3
+        assert scores["wordform_n_syllables"] == 1
+        assert scores["wordform_n_phonemes"] == 3  # K AE T
 
     def test_multisyllabic(self, model):
         scores = model.predict("banana")
-        assert scores["n_syllables"] == 3
+        assert scores["wordform_n_syllables"] == 3
 
     def test_oov_phonemes_nan_syllables_estimated(self, model):
         scores = model.predict("floofdoggo")
-        assert math.isnan(scores["n_phonemes"])
-        assert scores["n_syllables"] >= 2
+        assert math.isnan(scores["wordform_n_phonemes"])
+        assert scores["wordform_n_syllables"] >= 2
 
     def test_old20_dense_vs_sparse(self, model):
         # "cat" lives in a dense orthographic neighborhood; "xylophone" doesn't
-        cat = model.predict("cat")["old20"]
-        xylo = model.predict("xylophone")["old20"]
+        cat = model.predict("cat")["wordform_old20"]
+        xylo = model.predict("xylophone")["wordform_old20"]
         assert cat < xylo
         assert cat >= 1.0  # self excluded
 
@@ -155,20 +155,20 @@ class TestExtendedNorms:
         m.load()
         scores = m.predict("conversation")
         for feat in (
-            "familiarity",
-            "semantic_size",
-            "gender_association",
-            "socialness",
-            "body_object_interaction",
+            "lexical_norms_familiarity",
+            "lexical_norms_semantic_size",
+            "lexical_norms_gender_association",
+            "lexical_norms_socialness",
+            "lexical_norms_body_object_interaction",
         ):
             assert feat in scores
         assert len(scores) == 23
         # "conversation" is social; "gravel" is not
         gravel = m.predict("gravel")
-        assert scores["socialness"] > gravel["socialness"]
+        assert scores["lexical_norms_socialness"] > gravel["lexical_norms_socialness"]
         # "hammer" affords more bodily interaction than "cloud"
         assert (
-            m.predict("hammer")["body_object_interaction"]
-            > m.predict("cloud")["body_object_interaction"]
+            m.predict("hammer")["lexical_norms_body_object_interaction"]
+            > m.predict("cloud")["lexical_norms_body_object_interaction"]
         )
         m.unload()

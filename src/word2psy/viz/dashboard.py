@@ -38,17 +38,18 @@ _CHUNK_INDEX_COLS = ["chunk_idx", "chunk_label", "n_words"]
 
 # Core (non-sensorimotor) lexical norms shown in the detail "Norms" panel
 _CORE_NORMS = [
-    "concreteness", "valence", "arousal", "dominance", "age_of_acquisition",
-    "imageability", "familiarity", "semantic_size", "gender_association",
-    "socialness", "body_object_interaction", "zipf_frequency",
+    "lexical_norms_concreteness", "lexical_norms_valence", "lexical_norms_arousal", "lexical_norms_dominance", "lexical_norms_age_of_acquisition",
+    "lexical_norms_imageability", "lexical_norms_familiarity", "lexical_norms_semantic_size", "lexical_norms_gender_association",
+    "lexical_norms_socialness", "lexical_norms_body_object_interaction", "lexical_norms_zipf_frequency",
 ]
 _SENSORIMOTOR = [
-    "sensorimotor_touch", "sensorimotor_hearing", "sensorimotor_smell",
-    "sensorimotor_taste", "sensorimotor_vision", "sensorimotor_interoception",
-    "sensorimotor_mouth", "sensorimotor_hand", "sensorimotor_foot",
-    "sensorimotor_head", "sensorimotor_torso",
+    "lexical_norms_sensorimotor_touch", "lexical_norms_sensorimotor_hearing", "lexical_norms_sensorimotor_smell",
+    "lexical_norms_sensorimotor_taste", "lexical_norms_sensorimotor_vision", "lexical_norms_sensorimotor_interoception",
+    "lexical_norms_sensorimotor_mouth", "lexical_norms_sensorimotor_hand", "lexical_norms_sensorimotor_foot",
+    "lexical_norms_sensorimotor_head", "lexical_norms_sensorimotor_torso",
 ]
-_WORDFORM = ["length", "n_syllables", "n_phonemes", "old20", "gpt2_surprisal"]
+_WORDFORM = ["wordform_length", "wordform_n_syllables", "wordform_n_phonemes",
+             "wordform_old20", "gpt2_surprisal"]
 
 
 def _values(series: pd.Series) -> list:

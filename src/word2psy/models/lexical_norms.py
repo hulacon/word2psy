@@ -48,12 +48,12 @@ class LexicalNormsModel(BaseModel):
 
         scores: dict[str, float] = {}
         for name, model in self._regressors.items():
-            scores[name] = float(model.predict(vec)[0])
+            scores[f"lexical_norms_{name}"] = float(model.predict(vec)[0])
 
         # Zipf frequency via wordfreq
         from wordfreq import zipf_frequency
 
-        scores["zipf_frequency"] = zipf_frequency(word, "en")
+        scores["lexical_norms_zipf_frequency"] = zipf_frequency(word, "en")
 
         return scores
 
@@ -78,10 +78,10 @@ class LexicalNormsModel(BaseModel):
         for name, model in self._regressors.items():
             preds = model.predict(vecs)
             for w, p in zip(unique_words, preds):
-                unique_scores[w][name] = float(p)
+                unique_scores[w][f"lexical_norms_{name}"] = float(p)
 
         for w in unique_words:
-            unique_scores[w]["zipf_frequency"] = zipf_frequency(w, "en")
+            unique_scores[w]["lexical_norms_zipf_frequency"] = zipf_frequency(w, "en")
 
         # Map back to original order
         return [dict(unique_scores[w]) for w in words]

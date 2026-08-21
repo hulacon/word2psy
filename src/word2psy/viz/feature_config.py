@@ -51,32 +51,37 @@ class FeatureConfig:
 
 
 _LEXICAL_NORM_FEATURES = [
-    "concreteness",
-    "valence",
-    "arousal",
-    "dominance",
-    "age_of_acquisition",
-    "imageability",
-    "familiarity",
-    "semantic_size",
-    "gender_association",
-    "socialness",
-    "body_object_interaction",
-    "sensorimotor_touch",
-    "sensorimotor_hearing",
-    "sensorimotor_smell",
-    "sensorimotor_taste",
-    "sensorimotor_vision",
-    "sensorimotor_interoception",
-    "sensorimotor_mouth",
-    "sensorimotor_hand",
-    "sensorimotor_foot",
-    "sensorimotor_head",
-    "sensorimotor_torso",
-    "zipf_frequency",
+    "lexical_norms_concreteness",
+    "lexical_norms_valence",
+    "lexical_norms_arousal",
+    "lexical_norms_dominance",
+    "lexical_norms_age_of_acquisition",
+    "lexical_norms_imageability",
+    "lexical_norms_familiarity",
+    "lexical_norms_semantic_size",
+    "lexical_norms_gender_association",
+    "lexical_norms_socialness",
+    "lexical_norms_body_object_interaction",
+    "lexical_norms_sensorimotor_touch",
+    "lexical_norms_sensorimotor_hearing",
+    "lexical_norms_sensorimotor_smell",
+    "lexical_norms_sensorimotor_taste",
+    "lexical_norms_sensorimotor_vision",
+    "lexical_norms_sensorimotor_interoception",
+    "lexical_norms_sensorimotor_mouth",
+    "lexical_norms_sensorimotor_hand",
+    "lexical_norms_sensorimotor_foot",
+    "lexical_norms_sensorimotor_head",
+    "lexical_norms_sensorimotor_torso",
+    "lexical_norms_zipf_frequency",
 ]
 
-_WORDFORM_FEATURES = ["length", "n_syllables", "n_phonemes", "old20"]
+_WORDFORM_FEATURES = [
+    "wordform_length",
+    "wordform_n_syllables",
+    "wordform_n_phonemes",
+    "wordform_old20",
+]
 
 _READABILITY_FEATURES = [
     "readability_flesch_ease",
@@ -108,7 +113,7 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         mds_clustering=True,
         timeseries_mode="all",
         column_patterns=list(_LEXICAL_NORM_FEATURES[:11])
-        + ["sensorimotor_*", "zipf_frequency"],
+        + ["lexical_norms_sensorimotor_*", "lexical_norms_zipf_frequency"],
         scalar_features=list(_LEXICAL_NORM_FEATURES),
     ),
     "wordform": FeatureConfig(

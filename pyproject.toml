@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "word2psy"
-version = "0.3.1"
+version = "0.4.0"
 description = "Extract psychological and linguistic features from text using multiple computational models"
 readme = "README.md"
 license = "MIT"
