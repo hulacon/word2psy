@@ -24,7 +24,9 @@ _WORD_INDEX_COLS = {
     "onset", "offset",
 }
 # Embedding dimension columns look like fasttext_000, word2vec_299, ...
-_EMBEDDING_COL = re.compile(r"_\d{3}$")
+# Contract B §4.1 pads the index to a fixed width, so spaces wider than
+# 1,000 dimensions use four digits (ebind_text_1023) -- match 3 or more.
+_EMBEDDING_COL = re.compile(r"_\d{3,}$")
 
 _AGGREGATE_STATS = ["mean", "sd", "min", "max"]
 
@@ -38,6 +40,7 @@ def score_text(
     keep_punctuation: bool = False,
     by_sentence: bool = False,
     aggregate_words: bool = True,
+    pool_embeddings: bool = True,
     batch_size: int = 64,
     quiet: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -65,7 +68,14 @@ def score_text(
         If True (default), append per-chunk aggregates of word-level
         scalar features to the chunks table as ``{feature}_{stat}``
         columns (mean/sd/min/max, NaN-aware; sd is NaN for single-word
-        chunks). Embedding columns are not aggregated.
+        chunks). Embedding columns are not aggregated -- see
+        ``pool_embeddings``.
+    pool_embeddings : bool
+        If True (default), mean-pool word-level embedding columns
+        (``{model}_{NNN}``) within each chunk and write them to the
+        chunks table under the same names, so a static word embedding
+        becomes a chunk-level space comparable to CLIP/MiniLM/EBind.
+        Adds a ``{model}_n_pooled`` count per space.
     batch_size : int
         Number of items per forward pass.
     quiet : bool
@@ -160,6 +170,14 @@ def score_text(
 
     if aggregate_words:
         aggregate_word_features(words_df, chunks_df)
+    if pool_embeddings:
+        pooled = pool_word_embeddings(words_df, chunks_df)
+        # Attribute pooled columns back to the model that produced them,
+        # mirroring the ``feature_names_`` convention above.
+        for model in models:
+            own = [c for c in pooled if c.startswith(f"{model.name}_")]
+            if own:
+                model.pooled_features_ = own
 
     return words_df, chunks_df
 
@@ -203,6 +221,74 @@ def aggregate_word_features(
             col = f"{feat}_{stat}"
             new_cols[col] = chunks_df["chunk_idx"].map(tables[stat][feat])
             added.append(col)
+    chunks_df[added] = pd.DataFrame(new_cols, index=chunks_df.index)
+    return added
+
+
+def pool_word_embeddings(
+    words_df: pd.DataFrame,
+    chunks_df: pd.DataFrame,
+) -> list[str]:
+    """Mean-pool word-level embedding columns into the chunks table in-place.
+
+    Static word embeddings (``word2vec``, ``fasttext``) are the only
+    spaces that exist per token and not per chunk, so without pooling
+    they cannot be compared against chunk-level spaces such as
+    ``clip_text`` or ``minilm``. This writes one pooled vector per chunk
+    under the *same* column names the words table uses
+    (``word2vec_000``...), which is what makes the result a first-class
+    embedding space to a Contract B consumer: psytwill detects a space by
+    the ``{prefix}_{NNN}`` pattern and nothing else.
+
+    Pooling is the unweighted, NaN-aware mean over a chunk's words, so
+    out-of-vocabulary tokens (word2vec returns NaN for these; fastText's
+    subwords never do) drop out rather than poisoning the vector. A
+    ``{prefix}_n_pooled`` column records how many words actually
+    contributed, since a vector pooled over 2 of 9 words is not the same
+    evidence as one pooled over all 9. A chunk with no in-vocabulary word
+    gets an all-NaN vector and ``n_pooled = 0``.
+
+    Deliberately *not* mean/sd/min/max: per-dimension spread of an
+    embedding is not interpretable the way it is for a lexical norm, and
+    the four-stat form would emit 1,200 columns for a 300-d space while
+    breaking the prefix pattern consumers match on.
+
+    Returns the list of columns added.
+    """
+    embed_cols = [
+        c
+        for c in words_df.columns
+        if c not in _WORD_INDEX_COLS
+        and _EMBEDDING_COL.search(c)
+        and pd.api.types.is_numeric_dtype(words_df[c])
+    ]
+    if not embed_cols or not len(words_df) or not len(chunks_df):
+        return []
+
+    # Group columns by their model prefix (everything before _NNN)
+    by_prefix: dict[str, list[str]] = {}
+    for col in embed_cols:
+        by_prefix.setdefault(_EMBEDDING_COL.sub("", col), []).append(col)
+
+    grouped = words_df.groupby("chunk_idx")
+    means = grouped[embed_cols].mean()  # NaN-aware
+
+    added = []
+    new_cols = {}
+    for prefix, cols in by_prefix.items():
+        # Count words carrying a real vector for this space, not merely
+        # present in the chunk -- word2vec OOV rows are all-NaN.
+        valid = words_df[cols[0]].notna()
+        n_pooled = valid.groupby(words_df["chunk_idx"]).sum()
+        count_col = f"{prefix}_n_pooled"
+        new_cols[count_col] = (
+            chunks_df["chunk_idx"].map(n_pooled).fillna(0).astype(int)
+        )
+        added.append(count_col)
+        for col in cols:
+            new_cols[col] = chunks_df["chunk_idx"].map(means[col])
+            added.append(col)
+
     chunks_df[added] = pd.DataFrame(new_cols, index=chunks_df.index)
     return added
 

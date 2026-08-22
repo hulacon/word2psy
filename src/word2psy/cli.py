@@ -643,6 +643,15 @@ def main():
         ),
     )
     parser.add_argument(
+        "--no-embedding-pooling",
+        action="store_false",
+        dest="pool_embeddings",
+        help=(
+            "Do not mean-pool word-level embeddings (word2vec, fasttext) "
+            "into the chunks table."
+        ),
+    )
+    parser.add_argument(
         "--text-column",
         help="For CSV/TSV input: column containing the text (each row = one chunk).",
     )
@@ -736,6 +745,7 @@ def main():
             keep_punctuation=args.keep_punctuation,
             by_sentence=args.by_sentence,
             aggregate_words=args.aggregate_words,
+            pool_embeddings=args.pool_embeddings,
         )
         total_time = time.time() - start
 
@@ -790,6 +800,7 @@ def main():
                     getattr(m, "feature_names_", []),
                     total_time / len(models),
                     level=m.level,
+                    pooled_features=getattr(m, "pooled_features_", None),
                 )
 
             meta_path = metadata.save(args.output)

@@ -142,16 +142,33 @@ class MetadataBuilder:
         feature_names: list[str],
         runtime_sec: float,
         level: str | None = None,
+        pooled_features: list[str] | None = None,
     ) -> None:
-        """Add model info after it completes."""
+        """Add model info after it completes.
+
+        ``pooled_features`` names the chunk-level columns produced by
+        mean-pooling a word-level embedding (see
+        ``pipeline.pool_word_embeddings``). Recorded so a consumer can
+        tell a pooled chunk vector from one the model emitted directly --
+        the column names are identical either way.
+        """
         package_version = get_model_version(model_name)
-        self.models[model_name] = {
+        entry = {
             "version": package_version,  # legacy key, one deprecation cycle
             "package_version": package_version,
             "checkpoint": get_model_checkpoint(model_name),
             "runtime_sec": round(runtime_sec, 3),
             "features": get_feature_info(model_name, feature_names, level=level),
         }
+        if pooled_features:
+            dims = [c for c in pooled_features if not c.endswith("_n_pooled")]
+            entry["chunk_pooling"] = {
+                "stat": "mean",
+                "nan_policy": "omit",
+                "count_column": f"{model_name}_n_pooled",
+                "features": get_feature_info(model_name, dims, level="chunk"),
+            }
+        self.models[model_name] = entry
         self.model_features[model_name] = feature_names
         self.total_runtime_sec += runtime_sec
 

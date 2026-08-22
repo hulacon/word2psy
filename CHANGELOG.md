@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-22
+
+### Added
+
+- **Chunk-level pooling for static word embeddings.** `word2vec` and
+  `fasttext` are the only spaces that exist per token and not per chunk,
+  so their chunks table carried metadata columns and nothing else — 10
+  columns against `clip_text`'s 522. They could not be compared against
+  chunk-level spaces at all. `pipeline.pool_word_embeddings()` now
+  mean-pools a chunk's word vectors into the chunks table under the
+  *same* column names (`word2vec_000`...), which is what makes the
+  result a first-class space to a consumer: psytwill detects a space by
+  the `{prefix}_{NNN}` pattern and nothing else.
+
+  Pooling is NaN-aware, so word2vec's out-of-vocabulary tokens drop out
+  rather than poisoning the vector, and a new `{prefix}_n_pooled` column
+  records how many words actually contributed — a vector pooled over 2
+  of 9 words is not the same evidence as one pooled over all 9. A chunk
+  with no in-vocabulary word gets an all-NaN vector and `n_pooled = 0`,
+  not a zero vector.
+
+  Deliberately *not* the `mean/sd/min/max` form used for scalar features:
+  per-dimension spread of an embedding is not interpretable the way it is
+  for a lexical norm, and four stats would emit 1,200 columns for a 300-d
+  space while breaking the prefix pattern consumers match on.
+
+  On by default; `--no-embedding-pooling` opts out. The sidecar records
+  it as `models.{name}.chunk_pooling` so a pooled chunk vector is
+  distinguishable from one a model emitted directly, since the column
+  names are identical either way.
+
+### Fixed
+
+- The internal embedding-column pattern matched exactly three digits, so
+  a word-level space wider than 1,000 dimensions would have been treated
+  as a scalar feature — aggregated as `_mean`/`_sd`/`_min`/`_max` and
+  never pooled. Now matches three or more, consistent with Contract B
+  §4.1's fixed-width indices. No shipped model is affected: both
+  word-level embeddings are 300-d, and `ebind_text` (1024-d) is
+  chunk-level and never enters the words table.
+
 ## [0.4.0] - 2026-08-20
 
 **Breaking:** two models' feature columns are renamed. `lexical_norms` and
