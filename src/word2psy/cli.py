@@ -752,19 +752,34 @@ def main():
         # Canonical stimulus identity (Contract B §4.1): the --id-column
         # labels per chunk when CSV rows are the stimuli, else one constant
         # id per input text.
+        #
+        # The two frames are resolved separately on purpose. `passthrough`
+        # copies stimulus_id straight off the input CSV into chunks_df, but
+        # never into words_df, which is built per word. A single
+        # `if "stimulus_id" not in chunks_df.columns` guard around both
+        # therefore left every *_words.csv unlabelled whenever the input
+        # already supplied the column -- silently, since psytwill falls back
+        # to chunk_label. chunk_idx is guaranteed in both frames, so words
+        # always derive their id from the chunk they belong to.
         if "stimulus_id" not in chunks_df.columns:
-            sid_chunks = sid_words = None
+            sid_chunks = None
             if args.stimulus_id is not None:
-                sid_chunks = sid_words = args.stimulus_id
+                sid_chunks = args.stimulus_id
             elif args.id_column and "chunk_label" in chunks_df.columns:
                 sid_chunks = chunks_df["chunk_label"].astype(str)
-                by_chunk = dict(zip(chunks_df["chunk_idx"], sid_chunks))
-                sid_words = words_df["chunk_idx"].map(by_chunk)
             elif inputs:
-                sid_chunks = sid_words = Path(inputs[0]).stem
+                sid_chunks = Path(inputs[0]).stem
             if sid_chunks is not None:
                 chunks_df.insert(0, "stimulus_id", sid_chunks)
-                words_df.insert(0, "stimulus_id", sid_words)
+
+        if (
+            "stimulus_id" not in words_df.columns
+            and "stimulus_id" in chunks_df.columns
+        ):
+            by_chunk = dict(zip(chunks_df["chunk_idx"], chunks_df["stimulus_id"]))
+            words_df.insert(
+                0, "stimulus_id", words_df["chunk_idx"].map(by_chunk)
+            )
 
         if args.output:
             stem = args.output.with_suffix("")
