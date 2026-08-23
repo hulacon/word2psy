@@ -123,6 +123,18 @@ class TestReadInputs:
         )
         assert text == ["dog", "justice"]
         assert labels == ["s1", "s2"]
+        # `condition` is an experiment variable, not a feature: since 0.6.0 it
+        # is not carried unless asked for. `stim_id` is not stimulus_id, so it
+        # is not carried either -- the id reaches the output as chunk labels.
+        assert passthrough is None
+
+    def test_csv_input_passthrough_on_request(self, tmp_path):
+        p = tmp_path / "stimuli.csv"
+        p.write_text("stim_id,word,condition\ns1,dog,animal\ns2,justice,abstract\n")
+        _, _, passthrough = read_inputs(
+            [p], text_column="word", id_column="stim_id",
+            passthrough_columns=["stim_id", "condition"],
+        )
         assert list(passthrough.columns) == ["stim_id", "condition"]
         assert passthrough["condition"].tolist() == ["animal", "abstract"]
 
@@ -132,6 +144,14 @@ class TestReadInputs:
         text, labels, passthrough = read_inputs([p], text_column="word")
         assert text == ["cat"]
         assert labels is None
+        assert passthrough is None
+
+    def test_tsv_input_passthrough_all(self, tmp_path):
+        p = tmp_path / "stimuli.tsv"
+        p.write_text("word\trating\ncat\t5\n")
+        _, _, passthrough = read_inputs(
+            [p], text_column="word", passthrough_columns=["all"]
+        )
         assert passthrough["rating"].tolist() == [5]
 
     def test_csv_requires_text_column(self, tmp_path):
@@ -153,3 +173,64 @@ class TestReadInputs:
         t.write_text("text")
         with pytest.raises(TextLoadError):
             read_inputs([c, t], text_column="word")
+
+
+class TestPassthroughIsOptIn:
+    """word2psy 0.6.0: input columns no longer leak into feature output.
+
+    Copying every non-text column made experiment variables (annotator,
+    seg_number, trial index) indistinguishable from model output, and made
+    each model re-emit them, so they collided on any (stimulus, feature) key.
+    """
+
+    def _csv(self, tmp_path):
+        import pandas as pd
+        src = tmp_path / "in.csv"
+        pd.DataFrame([
+            {"stimulus_id": "m1", "seg_number": 1, "annotator": "AB",
+             "description": "a dog runs"},
+            {"stimulus_id": "m2", "seg_number": 2, "annotator": "CD",
+             "description": "a cat sits"},
+        ]).to_csv(src, index=False)
+        return src
+
+    def test_default_carries_only_stimulus_id(self, tmp_path):
+        _, _, pt = read_inputs([self._csv(tmp_path)], text_column="description")
+        assert list(pt.columns) == ["stimulus_id"]
+
+    def test_named_columns_are_carried(self, tmp_path):
+        _, _, pt = read_inputs([self._csv(tmp_path)], text_column="description",
+                               passthrough_columns=["seg_number"])
+        assert set(pt.columns) == {"stimulus_id", "seg_number"}
+        assert "annotator" not in pt.columns
+
+    def test_all_restores_the_old_behaviour(self, tmp_path):
+        _, _, pt = read_inputs([self._csv(tmp_path)], text_column="description",
+                               passthrough_columns=["all"])
+        assert set(pt.columns) == {"stimulus_id", "seg_number", "annotator"}
+
+    def test_unknown_column_names_the_available_ones(self, tmp_path):
+        with pytest.raises(TextLoadError, match="not found"):
+            read_inputs([self._csv(tmp_path)], text_column="description",
+                        passthrough_columns=["nope"])
+
+    def test_input_without_stimulus_id_passes_nothing(self, tmp_path):
+        import pandas as pd
+        src = tmp_path / "plain.csv"
+        pd.DataFrame([{"label": "a", "text": "a dog runs"}]).to_csv(src, index=False)
+        _, _, pt = read_inputs([src], text_column="text")
+        assert pt is None
+
+    def test_intrinsic_coordinates_are_always_carried(self, tmp_path):
+        """onset/offset are the stimulus's own coordinates, not experiment
+        variables: an ASR segment's bounds must reach the output even though
+        word2psy cannot derive them itself."""
+        import pandas as pd
+        src = tmp_path / "seg.csv"
+        pd.DataFrame([
+            {"stimulus_id": "m1", "onset": 0.0, "offset": 6.0,
+             "asr_confidence": 0.9, "text": "a dog runs"},
+        ]).to_csv(src, index=False)
+        _, _, pt = read_inputs([src], text_column="text")
+        assert set(pt.columns) == {"stimulus_id", "onset", "offset"}
+        assert "asr_confidence" not in pt.columns

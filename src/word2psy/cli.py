@@ -160,18 +160,42 @@ def _read_text(input_path: Path) -> str:
 TABULAR_SUFFIXES = {".csv": ",", ".tsv": "\t"}
 
 
+# Always carried when present: the stimulus's identity, and the intrinsic
+# coordinates of the stimulus itself (when a caller supplies timings that
+# word2psy cannot derive -- ASR segment bounds, annotation segment bounds).
+# These are properties of the stimulus, not variables of anyone's
+# experiment, and downstream consumers key on them. Everything else is
+# opt-in via --passthrough.
+ALWAYS_PASSTHROUGH = ("stimulus_id", "onset", "offset", "time", "voice")
+
+
 def read_inputs(
     inputs: list[Path],
     text_column: str | None = None,
     id_column: str | None = None,
+    passthrough_columns: list[str] | None = None,
 ):
     """Read input files into (text, chunk_labels, passthrough).
 
     Plain text files: each file is one chunk; returns (str | list[str],
     None, None). CSV/TSV: a single tabular file where each row is one
-    chunk; ``text_column`` selects the text, ``id_column`` (optional)
-    provides chunk labels, and all other columns are returned as a
-    passthrough DataFrame carried into the chunks output.
+    chunk; ``text_column`` selects the text and ``id_column`` (optional)
+    provides chunk labels.
+
+    ``passthrough_columns`` names the input columns to carry into the
+    chunks output; ``["all"]`` restores the pre-0.6.0 behaviour of copying
+    every non-text column. The default is none but ``stimulus_id``.
+
+    That default is deliberate. word2psy's output should be the features
+    word2psy computed, not those plus whatever the caller's spreadsheet
+    happened to contain. Copying every input column made experiment
+    variables (an annotator, a segment number, a trial index) look like
+    features to downstream consumers, which cannot tell them apart from a
+    model's output -- and when several models score the same input, each
+    re-emits them, so they collide on any (stimulus, feature) key. Row
+    order and grouping (``chunk_idx``, ``word_idx``) already convey
+    position, which is what a consumer needs in order to join the
+    experiment's own table back on.
     """
     tabular = [p for p in inputs if p.suffix.lower() in TABULAR_SUFFIXES]
 
@@ -203,7 +227,22 @@ def read_inputs(
 
     text = df[text_column].astype(str).tolist()
     labels = df[id_column].astype(str).tolist() if id_column else None
-    passthrough = df.drop(columns=[text_column])
+
+    requested = passthrough_columns or []
+    if any(c == "all" for c in requested):
+        keep = [c for c in df.columns if c != text_column]
+    else:
+        unknown = [c for c in requested if c not in df.columns]
+        if unknown:
+            raise TextLoadError(
+                path,
+                f"--passthrough column(s) {unknown} not found; available "
+                f"columns: {list(df.columns)}",
+            )
+        keep = [c for c in df.columns
+                if c != text_column
+                and (c in requested or c in ALWAYS_PASSTHROUGH)]
+    passthrough = df[keep] if keep else None
     return text, labels, passthrough
 
 
@@ -656,6 +695,13 @@ def main():
         help="For CSV/TSV input: column containing the text (each row = one chunk).",
     )
     parser.add_argument(
+        "--passthrough",
+        help="For CSV/TSV input: comma-separated columns to carry into the "
+             "chunks table, or 'all' for every non-text column. Default: "
+             "none but stimulus_id. Experiment variables belong in your own "
+             "table, joined back on stimulus_id/chunk_idx.",
+    )
+    parser.add_argument(
         "--id-column",
         help="For CSV/TSV input: column to use as chunk labels.",
     )
@@ -712,7 +758,11 @@ def main():
     passthrough = None
     if inputs:
         text, chunk_labels, passthrough = read_inputs(
-            inputs, text_column=args.text_column, id_column=args.id_column
+            inputs, text_column=args.text_column, id_column=args.id_column,
+            passthrough_columns=(
+                [c.strip() for c in args.passthrough.split(",") if c.strip()]
+                if args.passthrough else None
+            ),
         )
     elif not sys.stdin.isatty():
         text = sys.stdin.read()
