@@ -39,6 +39,31 @@ class TestFastTextModel:
 
         assert vec("dog") @ vec("cat") > vec("dog") @ vec("algebra")
 
+    def test_in_vocabulary_words_get_the_dictionary_row(self, model):
+        """Not ``get_word_vector``, which averages in the character 4-grams."""
+        ft = model.model
+        for word in ("dog", "skateboard"):
+            emitted = np.array(list(model.predict(word).values()))
+            row = ft.get_input_vector(ft.get_word_id(word))
+            assert np.allclose(emitted, row)
+
+    def test_oov_still_composes_from_subwords(self, model):
+        emitted = np.array(list(model.predict("floofdoggo").values()))
+        assert np.allclose(emitted, model.model.get_word_vector("floofdoggo"))
+
+    def test_norm_does_not_track_word_length(self, model):
+        """The regression: ``get_word_vector`` shrinks a word by 1/(1+n_ngrams).
+
+        ``minn = maxn = 4``, so "a" has no n-grams and keeps its full norm
+        while "skateboard" has nine and loses most of its own. Pooled over a
+        sentence that hands the result to the function words.
+        """
+        def norm(w):
+            return np.linalg.norm(list(model.predict(w).values()))
+
+        short, long_ = norm("a"), norm("skateboard")
+        assert 0.5 < short / long_ < 2.0, (short, long_)
+
 
 class TestWord2VecModel:
     @pytest.fixture(scope="class")

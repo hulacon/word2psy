@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-08-23
+
+### Changed
+
+- **BREAKING (values, not columns): `fasttext` emits the dictionary input
+  row for in-vocabulary words**, instead of `get_word_vector`. The
+  checkpoint is a subword `.bin` with `minn = maxn = 4`, and
+  `get_word_vector` returns the unweighted mean of a word's own row and
+  its character 4-grams — so a word under four characters has no n-grams
+  and keeps its full norm, while every longer word is diluted by
+  `1 / (1 + n_ngrams)` onto n-gram rows that share a large common
+  direction. The emitted norm became close to a step function of word
+  *length*: measured over the 751 word types in the NSD shared1000
+  captions, `"a"` came back at 3.11 and `"skateboard"` at 0.38.
+
+  Any mean-pooling consumer then hands the pooled vector to the shortest,
+  most frequent function words — `"a"` alone is 14% of those caption
+  tokens. Pooled to caption level the space had a participation ratio of
+  **2.2 against 17.1** for the same words' dictionary rows, i.e. 1,000
+  captions occupying about two effective dimensions. Type-level
+  participation ratio was 54.9 against 82.7.
+
+  Subword composition is kept for the OOV case it exists to serve;
+  coverage on ordinary English is near-total (751/751 on those captions).
+  Column names, dimensionality and `checkpoint` are unchanged, so
+  **existing extractions are silently stale and must be re-run** — there
+  is no schema change for a consumer to detect. The chunk-level
+  `word2vec` space is unaffected and was never diluted this way.
+
+## [0.6.0] - 2026-08-22
+
+### Changed
+
+- **BREAKING: `--passthrough` is opt-in.** `read_inputs` copied every
+  non-text column of a CSV input into the chunks output, so experiment
+  variables became indistinguishable from model output, and twelve models
+  scoring one input re-emitted twelve identical copies of each — psytwill
+  refused `movies/annot/chunks` with 82,848 duplicate `(stimulus, feature)`
+  keys over exactly this. `--passthrough` now names the columns to carry,
+  or `all` for the previous behaviour. The default carries identity and
+  the stimulus's own intrinsic coordinates (`stimulus_id`, `onset`,
+  `offset`, `time`, `voice`) and nothing else. Position is already
+  conveyed by `chunk_idx` / `word_idx`.
+
+## [0.5.1] - 2026-08-22
+
+### Fixed
+
+- **`stimulus_id` reaches the words table too.** One
+  `if "stimulus_id" not in chunks_df.columns` guard wrapped id resolution
+  for *both* output frames, so whenever the input already supplied the
+  column the guard short-circuited and every `*_words.csv` was written
+  without it. Silent, because consumers fall back to `chunk_label` — in
+  the MMMData store that made the caption *text* the stimulus id for
+  movie word-level rows. 335 tables across 5 models and 8 sources were
+  affected. The two frames are now resolved separately.
+
 ## [0.5.0] - 2026-08-22
 
 ### Added
