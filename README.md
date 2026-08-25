@@ -114,6 +114,7 @@ words_df, chunks_df = score_text(
 | `sentiment` | chunk | 3 features | Negative/neutral/positive probabilities (cardiffnlp RoBERTa) |
 | `emotion` | chunk | 28 features | GoEmotions category probabilities (multi-label RoBERTa) — the text analog of viz2psy's EmoNet |
 | `readability` | chunk | 7 features | Flesch, Flesch-Kincaid, Gunning Fog, SMOG, Coleman-Liau, ARI, Dale-Chall |
+| `interaction` | chunk | 7 features | social-interaction rates: 1st-sing/1st-plur/2nd/3rd-person deixis, person nouns, discourse markers (closed lists), question-sentence fraction |
 | `minilm` | chunk | 384-d embedding | all-MiniLM-L6-v2 sentence embeddings — text-only semantic space, sharper than CLIP for verbal similarity |
 | `clip_text` | chunk | 512-d embedding | OpenCLIP ViT-B-32 (`laion2b_s34b_b79k`) text embeddings, L2-normalized, in the same space as viz2psy image embeddings |
 | `clap_text` | chunk | 512-d embedding | LAION-CLAP (`laion/larger_clap_music_and_speech`) text embeddings, in the same space as aud2psy `clap` audio embeddings |

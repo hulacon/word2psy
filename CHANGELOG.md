@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-08-25
+
+### Added
+
+- **`interaction` model:** seven social-interaction scalar rates per chunk,
+  the readability pattern applied to interactional language —
+  `interaction_first_person_sing`, `_first_person_plur`, `_second_person`,
+  `_third_person` (person deixis; "it" excluded), `_person_noun`,
+  `_discourse_marker` (closed lists in the module, so every score is
+  explainable by pointing at the tokens), and `_question` (fraction of
+  sentences ending in "?"). Rates are per word token on the pipeline's own
+  tokenization; a chunk with no word tokens scores NaN. Analytic
+  (`checkpoint` null); nltk is the only dependency, already required.
+  Like readability, single-word chunks yield degenerate values — the
+  metrics are meaningful for sentence-or-longer chunks.
+
 ## [0.7.0] - 2026-08-23
 
 ### Changed

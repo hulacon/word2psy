@@ -37,6 +37,7 @@ def get_model_version(model_name: str) -> str:
         "emotion": ("transformers", None),
         "sentiment": ("transformers", None),
         "readability": ("textstat", None),
+        "interaction": ("nltk", None),
         "wordform": ("rapidfuzz", None),
         "minilm": ("sentence-transformers", None),
     }

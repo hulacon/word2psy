@@ -99,6 +99,16 @@ _SENTIMENT_FEATURES = [
     "sentiment_positive",
 ]
 
+_INTERACTION_FEATURES = [
+    "interaction_first_person_sing",
+    "interaction_first_person_plur",
+    "interaction_second_person",
+    "interaction_third_person",
+    "interaction_person_noun",
+    "interaction_discourse_marker",
+    "interaction_question",
+]
+
 
 # Feature configurations for word2psy models
 FEATURE_CONFIGS: dict[str, FeatureConfig] = {
@@ -198,6 +208,18 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         timeseries_mode="all",
         column_patterns=["readability_*"],
         scalar_features=list(_READABILITY_FEATURES),
+    ),
+    "interaction": FeatureConfig(
+        name="interaction",
+        description="7 social-interaction rates",
+        feature_type="named_distribution",
+        n_dims=7,
+        level="chunk",
+        timeseries=True,
+        mds_clustering=False,
+        timeseries_mode="all",
+        column_patterns=["interaction_*"],
+        scalar_features=list(_INTERACTION_FEATURES),
     ),
     "minilm": FeatureConfig(
         name="minilm",

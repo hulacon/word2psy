@@ -99,6 +99,11 @@ MODEL_REGISTRY = {
         "ReadabilityModel",
         "7 classic readability metrics",
     ),
+    "interaction": (
+        "word2psy.models.interaction",
+        "InteractionModel",
+        "7 social-interaction rates (person deixis, person nouns, discourse markers, questions)",
+    ),
     "minilm": (
         "word2psy.models.sentence_embed",
         "SentenceEmbedModel",
