@@ -40,7 +40,8 @@ _CHUNK_INDEX_COLS = ["chunk_idx", "chunk_label", "n_words"]
 _CORE_NORMS = [
     "lexical_norms_concreteness", "lexical_norms_valence", "lexical_norms_arousal", "lexical_norms_dominance", "lexical_norms_age_of_acquisition",
     "lexical_norms_imageability", "lexical_norms_familiarity", "lexical_norms_semantic_size", "lexical_norms_gender_association",
-    "lexical_norms_socialness", "lexical_norms_body_object_interaction", "lexical_norms_zipf_frequency",
+    "lexical_norms_socialness", "lexical_norms_body_object_interaction",
+    "lexical_norms_animacy", "lexical_norms_zipf_frequency",
 ]
 _SENSORIMOTOR = [
     "lexical_norms_sensorimotor_touch", "lexical_norms_sensorimotor_hearing", "lexical_norms_sensorimotor_smell",

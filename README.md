@@ -106,7 +106,7 @@ words_df, chunks_df = score_text(
 
 | Model | Level | Output | Description |
 |-------|-------|--------|-------------|
-| `lexical_norms` | word | 23 features | 22 psycholinguistic norms predicted from fastText embeddings via ridge regression (concreteness, valence, arousal, dominance, age of acquisition, imageability, familiarity, semantic size, gender association, socialness, body-object interaction, 11 Lancaster sensorimotor dimensions), plus Zipf word frequency |
+| `lexical_norms` | word | 24 features | 23 psycholinguistic norms predicted from fastText embeddings via ridge regression (concreteness, valence, arousal, dominance, age of acquisition, imageability, familiarity, semantic size, gender association, socialness, body-object interaction, animacy, 11 Lancaster sensorimotor dimensions), plus Zipf word frequency |
 | `wordform` | word | 4 features | Length, syllable and phoneme counts (CMUdict), and orthographic OLD20 neighborhood distance |
 | `fasttext` | word | 300-d embedding | fastText `crawl-300d-2M-subword` static embeddings; subword-based, so every string gets a vector (no OOV) |
 | `word2vec` | word | 300-d embedding | GoogleNews word2vec embeddings for comparability with the legacy literature; out-of-vocabulary words get NaN |
@@ -203,6 +203,8 @@ originals if you use the corresponding features):
 - Lynott et al. (2020), Lancaster Sensorimotor Norms — 11 sensorimotor dimensions
 - Diveica, Pexman, & Binney (2023) — socialness
 - Pexman et al. (2019) — body-object interaction
+- VanArsdall & Blunt (2022) — animacy (the general living/nonliving scale;
+  [doi:10.3758/s13421-021-01266-y](https://doi.org/10.3758/s13421-021-01266-y))
 - Speer et al., [wordfreq](https://github.com/rspeer/wordfreq) — Zipf frequency
 
 ## Citing

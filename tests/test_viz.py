@@ -124,7 +124,7 @@ class TestFeatureConfig:
         cfg = FEATURE_CONFIGS["lexical_norms"]
         assert cfg.timeseries is True
         assert cfg.mds_clustering is True
-        assert cfg.n_dims == 23
+        assert cfg.n_dims == 24  # 23 norms (incl. animacy, 0.9.0) + Zipf
         assert cfg.level == "word"
 
     def test_all_registry_models_have_configs(self):

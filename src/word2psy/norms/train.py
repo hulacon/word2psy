@@ -46,6 +46,7 @@ NORM_DIMENSIONS = {
     "gender_association": ("glasgow", "gender_association"),
     "socialness": ("socialness", "socialness"),
     "body_object_interaction": ("boi", "body_object_interaction"),
+    "animacy": ("animacy", "animacy"),
 }
 
 

@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-08-25
+
+### Added
+
+- **`lexical_norms` gains `animacy`** — the general living/nonliving
+  scale from VanArsdall & Blunt (2022; 1,200 concrete nouns, 100–700),
+  the classic ventral-stream dimension the battery previously lacked on
+  every arm. Trained through the existing fastText+ridge machinery like
+  every other norm (human ratings anchor the mapping; ridge extends
+  coverage to arbitrary words); the source sheet also carries the five
+  finer animacy scales (thought, reproduction, person-similarity, goals,
+  movement) if a decomposition is ever wanted. The xlsx norm loader
+  learned an optional `sheet` key for multi-sheet workbooks.
+  lexical_norms is now 24 features (23 norms + Zipf). **Cached
+  regressors from earlier versions do not include animacy** — the model
+  auto-trains the missing regressor on next load; existing extractions
+  need a re-run to pick up the new column.
+
 ## [0.8.0] - 2026-08-25
 
 ### Added

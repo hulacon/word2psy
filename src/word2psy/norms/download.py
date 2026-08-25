@@ -59,6 +59,18 @@ NORM_SOURCES = {
         "word_col": "Word",
         "score_cols": {"socialness": "Mean"},
     },
+    "animacy": {
+        # VanArsdall & Blunt (2022), Memory & Cognition — 1,200 concrete
+        # nouns, six animacy scales (100-700). We take the general
+        # living/nonliving scale; the other five (thought, reproduction,
+        # person-similarity, goals, movement) are in the same sheet if a
+        # finer decomposition is ever wanted.
+        "url": "https://osf.io/download/3s9jw/",
+        "format": "xlsx",
+        "sheet": "Words",
+        "word_col": "Word",
+        "score_cols": {"animacy": "Living"},
+    },
     "boi": {
         "url": "https://osf.io/download/r84qn/",
         "format": "xlsx",
@@ -117,7 +129,7 @@ def _load_raw(name: str) -> pd.DataFrame:
         # row 1 = M/SD/N sub-headers.  Skip both and use column indices.
         df = pd.read_csv(io.BytesIO(raw), header=None, skiprows=2)
     elif fmt == "xlsx":
-        df = pd.read_excel(io.BytesIO(raw))
+        df = pd.read_excel(io.BytesIO(raw), sheet_name=spec.get("sheet", 0))
     elif fmt == "zip_tsv":
         with zipfile.ZipFile(io.BytesIO(raw)) as zf:
             import fnmatch

@@ -31,6 +31,7 @@ EXPECTED_FEATURES = [
     "lexical_norms_gender_association",
     "lexical_norms_socialness",
     "lexical_norms_body_object_interaction",
+    "lexical_norms_animacy",
     "lexical_norms_zipf_frequency",
 ]
 
@@ -58,6 +59,12 @@ class TestLexicalNormsModel:
         scores = norms_model.predict("cat")
         for name, val in scores.items():
             assert isinstance(val, float), f"{name} is not float: {type(val)}"
+
+    def test_animate_word_scores_higher_animacy(self, norms_model):
+        # VanArsdall & Blunt living/nonliving scale (100-700)
+        dog = norms_model.predict("dog")["lexical_norms_animacy"]
+        hammer = norms_model.predict("hammer")["lexical_norms_animacy"]
+        assert dog > hammer
 
     def test_concrete_word_has_high_concreteness(self, norms_model):
         scores = norms_model.predict("table")

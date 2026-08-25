@@ -62,6 +62,7 @@ _LEXICAL_NORM_FEATURES = [
     "lexical_norms_gender_association",
     "lexical_norms_socialness",
     "lexical_norms_body_object_interaction",
+    "lexical_norms_animacy",
     "lexical_norms_sensorimotor_touch",
     "lexical_norms_sensorimotor_hearing",
     "lexical_norms_sensorimotor_smell",
@@ -115,14 +116,14 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
     # --- word-level ---
     "lexical_norms": FeatureConfig(
         name="lexical_norms",
-        description="22 psycholinguistic word norms + Zipf frequency",
+        description="23 psycholinguistic word norms + Zipf frequency",
         feature_type="named_distribution",
-        n_dims=23,
+        n_dims=24,
         level="word",
         timeseries=True,
         mds_clustering=True,
         timeseries_mode="all",
-        column_patterns=list(_LEXICAL_NORM_FEATURES[:11])
+        column_patterns=list(_LEXICAL_NORM_FEATURES[:12])
         + ["lexical_norms_sensorimotor_*", "lexical_norms_zipf_frequency"],
         scalar_features=list(_LEXICAL_NORM_FEATURES),
     ),

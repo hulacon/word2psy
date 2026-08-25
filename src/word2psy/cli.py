@@ -60,7 +60,7 @@ MODEL_REGISTRY = {
     "lexical_norms": (
         "word2psy.models.lexical_norms",
         "LexicalNormsModel",
-        "22 psycholinguistic word norms + Zipf frequency",
+        "23 psycholinguistic word norms + Zipf frequency",
     ),
     "wordform": (
         "word2psy.models.wordform",
