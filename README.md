@@ -207,6 +207,13 @@ originals if you use the corresponding features):
   [doi:10.3758/s13421-021-01266-y](https://doi.org/10.3758/s13421-021-01266-y))
 - Speer et al., [wordfreq](https://github.com/rspeer/wordfreq) — Zipf frequency
 
+Norm predictions are **unbounded ridge outputs anchored to each source's
+rating scale, not ratings on it**: a strongly-typed word can score past the
+scale ends ("dog" predicts 6.2 on 1–5 concreteness, 776 on 100–700 animacy).
+Deliberately unclipped — the monotone structure is the signal, and consumers
+standardize per feature. Treat absolute values as scale-anchored scores, not
+as what raters would have said.
+
 ## Citing
 
 To cite word2psy itself, see [CITATION.cff](CITATION.cff) (GitHub's "Cite this
