@@ -58,6 +58,25 @@ dependencies = [
 dev = ["pytest", "ipython"]
 ebind = ["ebind @ git+https://github.com/encord-team/ebind"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The offline unit suite the CLAUDE.md TODO asked for. `weights` marks every
+# test that downloads model weights or norm databases at test time -- fastText
+# (~7 GB), CLIP, CLAP, GPT-2, the two RoBERTas, MiniLM, and the seven norm
+# databases. Deselected by default so a bare `pytest` is runnable on a clean
+# machine; run the full suite with `pytest -m ""`.
+#
+# Note this is deselection, not skipping: the tests are still there and still
+# run for anyone with warm caches, which is the normal state on Ben's machine.
+#
+# --strict-markers so a mistyped `@pytest.mark.weigths` is a collection error
+# rather than a mark that silently means nothing -- which would leave that test
+# in the default suite without the weights it needs.
+addopts = "-m 'not weights' --strict-markers"
+markers = [
+    "weights: downloads model weights or norm databases at test time (nltk punkt/cmudict do NOT count -- those are ~35 MB and the default suite needs them)",
+]
+
 [project.scripts]
 word2psy = "word2psy.cli:main"
 

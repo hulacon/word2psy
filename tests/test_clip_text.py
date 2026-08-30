@@ -18,6 +18,9 @@ def clip_model():
     return model
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestCLIPTextModel:
     def test_attributes(self):
         model = CLIPTextModel()

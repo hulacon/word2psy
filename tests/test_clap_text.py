@@ -17,6 +17,9 @@ def clap_model():
     return model
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestCLAPTextModel:
     def test_attributes(self):
         model = CLAPTextModel()
