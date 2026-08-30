@@ -7,8 +7,14 @@ import pandas as pd
 import pytest
 
 from word2psy.pipeline import score_text
+
 from word2psy.models.clip_text import CLIPTextModel
 from word2psy.models.lexical_norms import LexicalNormsModel
+
+# Every class here scores through the real models -- CLIPTextModel and
+# LexicalNormsModel are imported at module scope above -- so the whole
+# module needs downloaded weights. See the `weights` marker in pyproject.
+pytestmark = pytest.mark.weights
 
 
 @pytest.fixture(scope="module")

@@ -76,6 +76,9 @@ class TestWordform:
         assert cat >= 1.0  # self excluded
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestEmotion:
     @pytest.fixture(scope="class")
     def model(self):
@@ -97,6 +100,9 @@ class TestEmotion:
         assert angry["emotion_anger"] > happy["emotion_anger"]
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestSentiment:
     @pytest.fixture(scope="class")
     def model(self):
@@ -122,6 +128,9 @@ class TestSentiment:
         assert neg["sentiment_negative"] > 0.5
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestSentenceEmbed:
     @pytest.fixture(scope="class")
     def model(self):
@@ -147,6 +156,9 @@ class TestSentenceEmbed:
         assert dog1 @ dog2 > dog1 @ tax
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestExtendedNorms:
     def test_new_dimensions_present(self):
         from word2psy.models.lexical_norms import LexicalNormsModel

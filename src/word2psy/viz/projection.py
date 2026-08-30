@@ -6,11 +6,43 @@ used across scatter, explorer, and other visualization modules.
 
 from __future__ import annotations
 
+import inspect
 import warnings
 
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
+
+
+def _mds_kwargs(n_components, random_state, *, metric: bool) -> dict:
+    """Build MDS kwargs valid on both sides of the sklearn 1.8 signature change.
+
+    The package supports Python >=3.10, where pip resolves scikit-learn 1.7;
+    3.12 resolves 1.9. MDS changed incompatibly between them, so neither
+    spelling works everywhere:
+
+    * The flag selecting metric MDS is ``metric`` (a bool) through 1.7 and
+      ``metric_mds`` from 1.8. In 1.8 ``metric`` was reused for the distance
+      metric, so passing the old bool there is silently wrong rather than an
+      error -- which is why this is chosen by introspection, not a try/except.
+    * ``init`` was added in 1.8. It is passed where it exists because from 1.9
+      omitting it warns that the default changes from ``'random'`` to
+      ``'classical_mds'`` in 1.10; pinning it keeps the projection stable
+      across that release.
+    """
+    from sklearn.manifold import MDS
+
+    params = inspect.signature(MDS.__init__).parameters
+    kwargs = {
+        "n_components": n_components,
+        "random_state": random_state,
+        "normalized_stress": "auto",
+        "n_init": 1,
+        "metric_mds" if "metric_mds" in params else "metric": metric,
+    }
+    if "init" in params:
+        kwargs["init"] = "random"
+    return kwargs
 
 
 def _ppca_em(
@@ -314,14 +346,7 @@ def compute_projection(
                 "Consider using PCA or subsampling for faster results."
             )
 
-        projector = MDS(
-            n_components=n_components,
-            metric_mds=True,
-            random_state=random_state,
-            normalized_stress="auto",
-            n_init=1,
-            init="random",
-        )
+        projector = MDS(**_mds_kwargs(n_components, random_state, metric=True))
         X_proj = projector.fit_transform(X_scaled)
 
         if n_components == 2:
@@ -343,14 +368,7 @@ def compute_projection(
                 "Consider using PCA or subsampling for faster results."
             )
 
-        projector = MDS(
-            n_components=n_components,
-            metric_mds=False,  # Non-metric MDS
-            random_state=random_state,
-            normalized_stress="auto",
-            n_init=1,
-            init="random",
-        )
+        projector = MDS(**_mds_kwargs(n_components, random_state, metric=False))
         X_proj = projector.fit_transform(X_scaled)
 
         if n_components == 2:

@@ -12,6 +12,9 @@ import pytest
 from word2psy.pipeline import score_text
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestFastTextModel:
     @pytest.fixture(scope="class")
     def model(self):
@@ -91,6 +94,9 @@ class TestWord2VecModel:
         assert vec("dog") @ vec("cat") > vec("dog") @ vec("algebra")
 
 
+# Needs model weights or norm databases downloaded at test time; see the
+# `weights` marker in pyproject.toml.
+@pytest.mark.weights
 class TestGPT2Surprisal:
     @pytest.fixture(scope="class")
     def model(self):
