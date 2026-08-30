@@ -46,12 +46,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # The declared range is `>=3.10,<3.13`, so these are its exact ends. The
-      # upper bound is not caution: `fasttext-wheel` has no 3.13 wheel and does
-      # not build there, which is what pins it (CLAUDE.md). Raising the ceiling
-      # is a dependency problem, not a matrix edit.
+      # The declared range is `>=3.11,<3.13`, so these are its exact ends.
+      # Neither bound is caution. The ceiling is `fasttext-wheel`, which has no
+      # 3.13 wheel and does not build there (CLAUDE.md). The floor is
+      # scikit-learn: 1.8+ requires Python >=3.11, so a 3.10 leg would resolve
+      # sklearn 1.7.x forever and test a dependency set nobody runs. Raising
+      # either is a dependency problem, not a matrix edit.
       matrix:
-        python-version: ["3.10", "3.12"]
+        python-version: ["3.11", "3.12"]
 
     steps:
       - uses: actions/checkout@v7

@@ -29,8 +29,9 @@ aud2psy `ebind_audio` — so words can be compared directly with images and soun
 
 ## Installation
 
-Not yet on PyPI — install from source. Requires Python 3.10–3.12 (3.13+ not yet
-supported due to the fastText dependency).
+Not yet on PyPI — install from source. Requires Python 3.11–3.12 (3.13+ not yet
+supported due to the fastText dependency; 3.10 was dropped because
+scikit-learn 1.8+, which this package requires, needs 3.11+).
 
 ```bash
 git clone https://github.com/hulacon/word2psy.git
