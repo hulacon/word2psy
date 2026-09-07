@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2026-09-07
+
+### Fixed
+
+- `word2vec` loads the cached GoogleNews vectors directly once they are on
+  disk, instead of going through `gensim.downloader.load()` every time.
+  The downloader re-fetches `information.json` from GitHub on every call
+  and rewrites it truncate-then-write inside the data dir, so concurrent
+  loads against a shared cache race: a reader can see the file empty and
+  fail with `Expecting value: line 1 column 1 (char 0)`. Seen in 2 of 23
+  concurrent SLURM array tasks on a shared PIRG cache. Also makes offline
+  runs work once the vectors exist. The first-ever download is unchanged.
+
 ## [0.9.0] - 2026-08-25
 
 ### Added

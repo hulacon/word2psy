@@ -24,15 +24,32 @@ class Word2VecModel(BaseModel):
 
     def load(self) -> None:
         import os
+        from pathlib import Path
 
         from word2psy.norms.train import CACHE_DIR
 
         # Keep the ~1.7 GB gensim download inside the word2psy cache
         os.environ.setdefault("GENSIM_DATA_DIR", str(CACHE_DIR / "gensim"))
+        base = Path(os.environ["GENSIM_DATA_DIR"])
+        cached = base / self.checkpoint / f"{self.checkpoint}.gz"
+
+        if cached.exists():
+            # Load the cached vectors directly. gensim.downloader.load()
+            # re-fetches information.json from GitHub on EVERY call and
+            # rewrites it truncate-then-write in the (shared) data dir, so
+            # concurrent loads race: a reader can see an empty file and die
+            # with "Expecting value: line 1 column 1" (seen 2/23 array tasks,
+            # 2026-09-07). Once the vectors are on disk there is nothing to
+            # download and no reason to touch that file — this path is also
+            # what makes offline runs work.
+            from gensim.models import KeyedVectors
+
+            self.model = KeyedVectors.load_word2vec_format(str(cached), binary=True)
+            return
 
         import gensim.downloader
 
-        self.model = gensim.downloader.load("word2vec-google-news-300")
+        self.model = gensim.downloader.load(self.checkpoint)
 
     def predict(self, text: str) -> dict[str, float]:
         word = text.strip()
