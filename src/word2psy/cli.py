@@ -326,33 +326,70 @@ def _viz_browse(args):
     import pandas as pd
 
     from word2psy.viz.dashboard import create_dashboard
+    from word2psy.viz.merge import (
+        CHUNKS_KEYS,
+        WORDS_KEYS,
+        load_and_merge_dir,
+        merge_scores,
+    )
 
-    words_path, chunks_path = resolve_scores_paths(args.csv)
-    if words_path is None and chunks_path is None:
-        print(
-            f"Error: no scores files found for {args.csv} "
-            f"(looked for *_words.csv / *_chunks.csv).",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    # Expand inputs: a directory yields all its per-model (words, chunks)
+    # pairs; files/bases resolve as before. Multiple pairs merge on the
+    # shared scaffold into one all-models dashboard.
+    words_paths: list[Path] = []
+    chunks_paths: list[Path] = []
+    dir_tables: tuple | None = None
+    for p in args.csv:
+        if p.is_dir():
+            dir_tables = load_and_merge_dir(p)
+        else:
+            w, c = resolve_scores_paths(p)
+            if w is None and c is None:
+                print(
+                    f"Error: no scores files found for {p} "
+                    f"(looked for *_words.csv / *_chunks.csv).",
+                    file=sys.stderr,
+                )
+                sys.exit(1)
+            words_paths.extend([w] if w else [])
+            chunks_paths.extend([c] if c else [])
 
-    words_df = pd.read_csv(words_path) if words_path else None
-    chunks_df = pd.read_csv(chunks_path) if chunks_path else None
-    found = ", ".join(str(p) for p in (words_path, chunks_path) if p)
+    multi = dir_tables is not None or len(words_paths) > 1 or len(chunks_paths) > 1
+    if dir_tables is not None:
+        words_df, chunks_df = dir_tables
+        found = str(args.csv[0])
+    else:
+        if len(words_paths) > 1:
+            words_df = merge_scores(
+                {str(p): pd.read_csv(p) for p in words_paths}, WORDS_KEYS)
+        else:
+            words_df = pd.read_csv(words_paths[0]) if words_paths else None
+        if len(chunks_paths) > 1:
+            chunks_df = merge_scores(
+                {str(p): pd.read_csv(p) for p in chunks_paths}, CHUNKS_KEYS)
+        else:
+            chunks_df = pd.read_csv(chunks_paths[0]) if chunks_paths else None
+        found = ", ".join(str(p) for p in (*words_paths, *chunks_paths) if p)
     print(f"Building dashboard from {found}...")
 
+    first = args.csv[0]
     html = create_dashboard(
         words_df,
         chunks_df,
-        title=args.title or f"word2psy — {args.csv.stem}",
+        title=args.title or f"word2psy — {first.stem}",
         max_points=args.max_points,
     )
 
-    base = args.csv.name
-    for suffix in ("_words.csv", "_chunks.csv"):
-        if base.endswith(suffix):
-            base = base[: -len(suffix)]
-    output = args.output or args.csv.parent / f"{Path(base).stem}_browse.html"
+    if multi:
+        out_dir = first if first.is_dir() else first.parent
+        default_out = out_dir / "combined_browse.html"
+    else:
+        base = first.name
+        for suffix in ("_words.csv", "_chunks.csv"):
+            if base.endswith(suffix):
+                base = base[: -len(suffix)]
+        default_out = first.parent / f"{Path(base).stem}_browse.html"
+    output = args.output or default_out
     output.write_text(html, encoding="utf-8")
     print(f"Saved dashboard to {output}")
 
@@ -483,7 +520,9 @@ def _viz_main(argv: list[str]):
         "browse",
         help="Interactive HTML dashboard with per-word detail view.",
     )
-    p_br.add_argument("csv", type=Path, help=csv_help)
+    p_br.add_argument("csv", type=Path, nargs="+",
+                      help=csv_help + " Multiple paths (or a directory of "
+                      "per-model CSVs) merge into one all-models dashboard.")
     p_br.add_argument("-o", "--output", type=Path, help="Output HTML path.")
     p_br.add_argument("--title", help="Dashboard title.")
     p_br.add_argument(

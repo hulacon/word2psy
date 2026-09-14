@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- `word2psy viz browse` accepts multiple scores paths, or a directory of
+  per-model `*_words.csv` / `*_chunks.csv` files, and merges them into one
+  all-models dashboard (`word2psy.viz.merge`): words tables merge on
+  `(stimulus_id, word_idx)`, chunks tables on `(stimulus_id, chunk_idx)`,
+  with the shared scaffold columns kept once.
+
 ## [0.9.1] - 2026-09-07
 
 ### Fixed
