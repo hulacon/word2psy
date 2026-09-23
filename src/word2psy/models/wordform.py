@@ -27,6 +27,9 @@ class WordformModel(BaseModel):
     """Length, syllable/phoneme counts, and OLD20 for individual words."""
 
     name = "wordform"
+    nulls = {"wordform_n_phonemes": {
+        "means": "missing",
+        "when": "word not in CMUdict (n_syllables falls back to a regex estimate; phonemes have none)"}}
     level = "word"
 
     def load(self) -> None:

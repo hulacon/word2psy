@@ -169,7 +169,15 @@ def score_text(
             print(f"  {model.name} completed in {elapsed:.1f}s")
 
     if aggregate_words:
-        aggregate_word_features(words_df, chunks_df)
+        aggregated = aggregate_word_features(words_df, chunks_df)
+        # Attribute {feature}_{stat} columns to the model whose word feature
+        # they summarize, so the sidecar can inventory them (and declare
+        # their nulls) under that model -- Contract B §4.1.
+        for model in models:
+            own_feats = set(getattr(model, "feature_names_", []))
+            own = [c for c in aggregated if c.rsplit("_", 1)[0] in own_feats]
+            if own:
+                model.aggregate_features_ = own
     if pool_embeddings:
         pooled = pool_word_embeddings(words_df, chunks_df)
         # Attribute pooled columns back to the model that produced them,

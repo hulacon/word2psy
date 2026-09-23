@@ -635,6 +635,10 @@ def _viz_main(argv: list[str]):
 
 def main():
     # Route 'viz' / 'crossmodal' subcommands
+    if len(sys.argv) > 1 and sys.argv[1] == "sidecar":
+        from word2psy.sidecar import main as sidecar_main
+
+        sys.exit(sidecar_main(sys.argv[2:]))
     if len(sys.argv) > 1 and sys.argv[1] == "viz":
         _viz_main(sys.argv[2:])
         return
@@ -910,6 +914,7 @@ def main():
                     total_time / len(models),
                     level=m.level,
                     pooled_features=getattr(m, "pooled_features_", None),
+                    aggregate_features=getattr(m, "aggregate_features_", None),
                 )
 
             meta_path = metadata.save(args.output)

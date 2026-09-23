@@ -68,6 +68,58 @@ def get_model_checkpoint(model_name: str) -> str | None:
         return None
 
 
+SCHEMA_VERSION = "1.1"  # Contract B §4.1 extractor output convention
+
+AGGREGATE_STATS = ("mean", "sd", "min", "max")
+
+
+def declared_nulls(model_name: str) -> dict[str, dict[str, str]]:
+    """The model class's own ``nulls`` map. Raises on a lookup error: a silent
+    ``{}`` would be a false claim that the model cannot emit NaN."""
+    from word2psy.cli import _load_model_class
+
+    return {c: dict(e) for c, e in _load_model_class(model_name).nulls.items()}
+
+
+def model_nulls(
+    model_name: str,
+    columns: list[str],
+    aggregate_columns: list[str] | None = None,
+    pooled_columns: list[str] | None = None,
+) -> dict[str, dict[str, str]]:
+    """The sidecar ``nulls`` map: declared entries for emitted columns, plus
+    derived entries for the chunk aggregates (DECIDED 2026-09-23):
+
+    - ``{f}_sd`` is ``undefined``: fewer than two words with a value (ddof=1),
+      e.g. every one-word chunk, or an empty chunk.
+    - ``{f}_mean/_min/_max`` inherit the word column's kind when ``f`` has an
+      entry (an all-null chunk), else ``undefined`` (the chunk has no words).
+    - a pooled embedding dimension without its own entry is ``undefined`` on
+      a chunk with no words (a mean over zero vectors); one with an entry
+      (word2vec OOV, ``missing``) keeps it, and its ``when`` names both.
+    """
+    declared = declared_nulls(model_name)
+    emitted = set(columns)
+    out = {c: e for c, e in declared.items() if c in emitted or c in set(pooled_columns or ())}
+    for col in pooled_columns or ():
+        out.setdefault(col, {"means": "undefined",
+                             "when": "on the chunks table, the chunk has no words "
+                                     "(the pooled vector is a mean over zero words)"})
+    for col in aggregate_columns or ():
+        feat, stat = col.rsplit("_", 1)
+        if stat == "sd":
+            out[col] = {"means": "undefined",
+                        "when": "fewer than two words in the chunk have a value (sd uses ddof=1): "
+                                "every one-word chunk, or a chunk with no words"}
+        elif feat in declared:
+            out[col] = {"means": declared[feat]["means"],
+                        "when": f"every word in the chunk is null ({declared[feat]['when']}); "
+                                "or the chunk has no words"}
+        else:
+            out[col] = {"means": "undefined", "when": "the chunk has no words"}
+    return out
+
+
 def get_feature_info(
     model_name: str, feature_names: list[str], level: str | None = None
 ) -> dict[str, Any]:
@@ -144,6 +196,7 @@ class MetadataBuilder:
         runtime_sec: float,
         level: str | None = None,
         pooled_features: list[str] | None = None,
+        aggregate_features: list[str] | None = None,
     ) -> None:
         """Add model info after it completes.
 
@@ -169,6 +222,15 @@ class MetadataBuilder:
                 "count_column": f"{model_name}_n_pooled",
                 "features": get_feature_info(model_name, dims, level="chunk"),
             }
+        if aggregate_features:
+            entry["chunk_aggregates"] = {
+                "stats": list(AGGREGATE_STATS),
+                "nan_policy": "omit",
+                "sd_ddof": 1,
+                "columns": list(aggregate_features),
+            }
+        pooled_dims = [c for c in (pooled_features or []) if not c.endswith("_n_pooled")]
+        entry["nulls"] = model_nulls(model_name, feature_names, aggregate_features, pooled_dims)
         self.models[model_name] = entry
         self.model_features[model_name] = feature_names
         self.total_runtime_sec += runtime_sec
@@ -176,7 +238,7 @@ class MetadataBuilder:
     def build(self) -> dict[str, Any]:
         """Build the final metadata dict."""
         return {
-            "schema_version": "1.0",
+            "schema_version": SCHEMA_VERSION,
             "extractor": "word2psy",
             "extractor_version": get_version(),
             "word2psy_version": get_version(),  # legacy key, one deprecation cycle

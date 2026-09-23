@@ -42,6 +42,13 @@ class InteractionModel(BaseModel):
     """Seven social-interaction rates per chunk (closed word lists)."""
 
     name = "interaction"
+    nulls = {c: {"means": "undefined",
+                 "when": "the chunk has no word tokens (a rate over zero words)"
+                 + ("; also when it has no sentences" if c == "interaction_question" else "")}
+             for c in ("interaction_first_person_sing", "interaction_first_person_plur",
+                       "interaction_second_person", "interaction_third_person",
+                       "interaction_person_noun", "interaction_discourse_marker",
+                       "interaction_question")}
     level = "chunk"
     checkpoint = None  # analytic — closed lists above, no learned weights
 

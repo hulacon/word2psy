@@ -15,7 +15,7 @@ class TestSidecarSchema:
         builder = MetadataBuilder()
         meta = builder.build()
 
-        assert meta["schema_version"] == "1.0"
+        assert meta["schema_version"] == "1.1"
         assert meta["extractor"] == "word2psy"
         assert meta["extractor_version"] == __version__
         # Legacy key kept one deprecation cycle
@@ -43,7 +43,7 @@ class TestSidecarSchema:
 
         assert meta_path.name == "scores.meta.json"
         meta = json.loads(meta_path.read_text())
-        assert meta["schema_version"] == "1.0"
+        assert meta["schema_version"] == "1.1"
 
 
 class TestModelCheckpoints:

@@ -22,6 +22,13 @@ class Word2VecModel(BaseModel):
     level = "word"
     checkpoint = "word2vec-google-news-300"  # gensim-data vector-set name
 
+    # the same names hold the chunk-pooled vectors (pipeline.pool_word_embeddings)
+    nulls = {f"word2vec_{i:03d}": {
+        "means": "missing",
+        "when": "word not in the GoogleNews vocabulary (tried as-is, lowercased, capitalized); "
+                "on the chunks table, every word in the chunk is out of vocabulary, or the "
+                "chunk has no words"} for i in range(DIM)}
+
     def load(self) -> None:
         import os
         from pathlib import Path

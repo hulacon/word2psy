@@ -96,6 +96,11 @@ class GPT2SurprisalModel(BaseModel):
     """Word surprisal (bits) from GPT-2 given preceding context."""
 
     name = "gpt2_surprisal"
+    # The first word is NOT null: a BOS token gives it context.
+    nulls = {"gpt2_surprisal": {
+        "means": "missing",
+        "when": "the word cannot be aligned to GPT-2 tokens of the chunk text, or the chunk "
+                "text tokenizes to nothing"}}
     level = "context"
     checkpoint = "gpt2"  # Hugging Face model id
 

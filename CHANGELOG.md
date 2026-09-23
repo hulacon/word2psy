@@ -7,7 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-09-23
+
 ### Added
+
+- **Contract B schema 1.1 (`nulls`):** every model entry in the sidecar
+  carries `nulls`, mapping each column that can be NaN to `{"means", "when"}`
+  (constellation-contracts §4.1). Declared on the model class
+  (`BaseModel.nulls`, `{}` = never null): word2vec (300 dims, `missing`: OOV;
+  the same names hold the pooled chunk vectors), wordform `n_phonemes`
+  (`missing`: CMUdict miss), gpt2_surprisal (`missing`: unalignable token --
+  the first word is not null, BOS gives it context), interaction (7,
+  `undefined`: no word tokens). `schema_version` is now `"1.1"`.
+- **Chunk aggregates are inventoried.** The `{feature}_{mean,sd,min,max}`
+  columns appended to the chunks table were never listed in the sidecar; each
+  model entry now carries `chunk_aggregates` (`stats`, `nan_policy`, `sd_ddof`,
+  `columns`), and their nulls are derived (`metadata.model_nulls`): `_sd` is
+  `undefined` (fewer than two words with a value, e.g. every one-word chunk),
+  `_mean/_min/_max` inherit the word column's kind (an all-null chunk) or are
+  `undefined` (a chunk with no words).
+- `word2psy sidecar refresh PATH... [--dry-run]`: rewrites existing sidecars to
+  1.1 in place (JSON only), rebuilding `chunk_aggregates` from the chunks
+  table's header, and refusing a sidecar with NaN in an undeclared column.
+- `tests/test_nulls.py`: the producer-duty contract test (CMUdict miss,
+  one-word chunk, punctuation-only chunk, all-null chunk; refresh round-trip).
 
 - `word2psy viz browse` accepts multiple scores paths, or a directory of
   per-model `*_words.csv` / `*_chunks.csv` files, and merges them into one
