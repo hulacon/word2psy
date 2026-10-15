@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-15
+
+Fixes from a bug-hunting pass (#4). **Several change existing outputs**;
+re-score anything that hit the cases below.
+
+### Changed (existing outputs differ)
+
+- **CSV/TSV text and ID columns are read verbatim.** pandas' default NA
+  parsing turned the stimulus words `null`, `None`, `NA`, `nan` and `N/A`
+  (and blank cells) into NaN, which was then scored as the word "nan" (or,
+  on pandas 3, crashed tokenization). IDs were number-parsed, so `"01"` and
+  `"1"` collided and one blank ID turned `"2"` into `"2.0"`. Both columns
+  now keep their text exactly.
+- **Each `.txt` input gets its own `stimulus_id`** (its file stem). With
+  several files, every chunk used to carry the first file's stem.
+  `--stimulus-id` still overrides.
+- **`--by-sentence` keeps empty chunks** as one `{label}/s0` chunk with
+  `n_words = 0`, instead of dropping the chunk and its passthrough row.
+- **`readability` returns NaN for a chunk with no word characters** (empty or
+  punctuation only), not textstat's 0.0 on every metric. The seven columns'
+  nulls are declared in the sidecar (`undefined`).
+- **`word2psy crossmodal`: images with the same filename no longer collide.**
+  A non-unique `filename` column is skipped in favour of the next identifier
+  (`filepath`, …, `image_{i}`), so distinct images get distinct columns.
+  Unique filenames are unchanged.
+- **Sidecar `runtime_sec` is recorded per model** (load + score + unload).
+  It was `total / n_models`, the same number for every model. CSVs are
+  unaffected.
+
+### Fixed
+
+- **The `clip_text` truncation warning now fires.** open_clip always returns
+  exactly 77 columns, so the old shape check could never trigger; each
+  text's BPE tokens are counted instead (tokenizers without `encode()` skip
+  the check). Warning only; embeddings are unchanged.
+- `viz browse` no longer swallows every projection error: only `ValueError`
+  (degenerate input) degrades to a missing view, anything else raises.
+- `compute_projection` no longer writes NaN imputations into the caller's
+  array.
+- `word2vec_*` / `fasttext_*` column patterns no longer match the
+  `*_n_pooled` count column (`viz recommend`, `get_mds_features`).
+- CI installs torchvision from the CPU index alongside torch, so
+  `import open_clip` works there; an import-check step now covers it.
+
 ## [0.10.0] - 2026-09-23
 
 ### Added
