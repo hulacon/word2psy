@@ -223,15 +223,23 @@ class TestProjection:
         assert info["xlabel"] == "NMDS1"
         assert np.isfinite(X_proj).all()
 
-    @pytest.mark.parametrize("method", ["mds", "mds_nonmetric"])
-    def test_mds_no_future_warning(self, method):
-        # `init` is passed explicitly; sklearn >=1.9 warns when it is left to
-        # default (the default changes in 1.10).
-        import warnings
-        X = np.random.randn(20, 5)
-        with warnings.catch_warnings():
-            warnings.simplefilter("error", FutureWarning)
-            compute_projection(X, method=method)
+    @pytest.mark.parametrize("method,metric", [("mds", True), ("mds_nonmetric", False)])
+    def test_mds_pins_init_and_metric(self, method, metric, monkeypatch):
+        # `init` must be passed explicitly: its default changes in sklearn
+        # 1.10, and only 1.9 warns about it, so assert the kwargs directly.
+        import sklearn.manifold
+
+        seen = {}
+
+        class RecordingMDS(sklearn.manifold.MDS):
+            def __init__(self, **kwargs):
+                seen.update(kwargs)
+                super().__init__(**kwargs)
+
+        monkeypatch.setattr(sklearn.manifold, "MDS", RecordingMDS)
+        compute_projection(np.random.randn(20, 5), method=method)
+        assert seen["init"] == "random"
+        assert seen["metric_mds"] is metric
 
     def test_invalid_method(self):
         X = np.random.randn(20, 5)
