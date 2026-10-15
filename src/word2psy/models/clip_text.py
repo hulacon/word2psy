@@ -61,11 +61,15 @@ class CLIPTextModel(BaseModel):
     def predict_batch(self, texts: list[str]) -> list[dict[str, float]]:
         tokens = self._tokenizer(texts).to(self.device)
 
-        # Warn if any chunks are likely truncated (CLIP context length = 77 tokens)
-        if tokens.shape[1] > 77:
+        # Warn if any chunk was truncated. The tokenizer always returns
+        # exactly context_length columns, so count each text's own BPE
+        # tokens (+2 for start/end) instead of checking the tensor shape.
+        n_ctx = tokens.shape[1]
+        n_long = sum(len(self._tokenizer.encode(t)) + 2 > n_ctx for t in texts)
+        if n_long:
             logger.warning(
-                "Some text chunks exceed CLIP's 77-token context length and "
-                "will be truncated."
+                f"{n_long} text chunk(s) exceed CLIP's {n_ctx}-token context "
+                "length and were truncated."
             )
 
         with torch.no_grad():

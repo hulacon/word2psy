@@ -138,6 +138,7 @@ def score_text(
                 chunks_df[col] = pt[col].values
 
     for model in models:
+        load_start = time.time()
         if not quiet:
             print(f"Loading {model.name} on {model.device}...")
         try:
@@ -165,6 +166,8 @@ def score_text(
         model.unload()
 
         elapsed = time.time() - start_time
+        # Load + score + unload, for the sidecar's per-model runtime_sec
+        model.runtime_sec_ = time.time() - load_start
         if not quiet:
             print(f"  {model.name} completed in {elapsed:.1f}s")
 

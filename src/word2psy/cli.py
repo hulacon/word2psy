@@ -218,8 +218,13 @@ def read_inputs(
 
     import pandas as pd
 
+    # Text and ID cells are read verbatim. pandas' default NA parsing would
+    # turn the stimulus words "null", "None", "NA", "nan" and "N/A" into NaN,
+    # and number-parse IDs ("01" and "1" both -> 1; one blank -> "2.0").
+    verbatim = {c: str for c in (text_column, id_column) if c}
     try:
-        df = pd.read_csv(path, sep=TABULAR_SUFFIXES[path.suffix.lower()])
+        df = pd.read_csv(path, sep=TABULAR_SUFFIXES[path.suffix.lower()],
+                         converters=verbatim)
     except Exception as e:
         raise TextLoadError(path, str(e)) from e
 
@@ -804,6 +809,7 @@ def main():
     # Read input text
     chunk_labels = None
     passthrough = None
+    per_file_ids = False
     if inputs:
         text, chunk_labels, passthrough = read_inputs(
             inputs, text_column=args.text_column, id_column=args.id_column,
@@ -812,6 +818,15 @@ def main():
                 if args.passthrough else None
             ),
         )
+        # Several .txt files are several stimuli: each chunk takes its own
+        # file's stem. Carried as passthrough so --by-sentence repeats it
+        # across the file's sentences.
+        is_tabular = any(p.suffix.lower() in TABULAR_SUFFIXES for p in inputs)
+        if len(inputs) > 1 and not is_tabular and args.stimulus_id is None:
+            import pandas as pd
+
+            passthrough = pd.DataFrame({"stimulus_id": [p.stem for p in inputs]})
+            per_file_ids = True
     elif not sys.stdin.isatty():
         text = sys.stdin.read()
         if not text.strip():
@@ -869,6 +884,8 @@ def main():
                 sid_chunks = Path(inputs[0]).stem
             if sid_chunks is not None:
                 chunks_df.insert(0, "stimulus_id", sid_chunks)
+        elif per_file_ids:
+            chunks_df.insert(0, "stimulus_id", chunks_df.pop("stimulus_id"))
 
         if (
             "stimulus_id" not in words_df.columns
@@ -911,7 +928,7 @@ def main():
                 metadata.add_model(
                     m.name,
                     getattr(m, "feature_names_", []),
-                    total_time / len(models),
+                    getattr(m, "runtime_sec_", total_time / len(models)),
                     level=m.level,
                     pooled_features=getattr(m, "pooled_features_", None),
                     aggregate_features=getattr(m, "aggregate_features_", None),

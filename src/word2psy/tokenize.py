@@ -42,7 +42,9 @@ def split_by_sentence(
     labels: list[str] = []
     origin: list[int] = []
     for i, (chunk_text, label) in enumerate(zip(chunks, chunk_labels)):
-        for j, sentence in enumerate(nltk.sent_tokenize(chunk_text)):
+        # A chunk with no sentences (empty text) stays as one empty chunk
+        # rather than vanishing along with its passthrough row.
+        for j, sentence in enumerate(nltk.sent_tokenize(chunk_text) or [chunk_text]):
             sentences.append(sentence)
             labels.append(f"{label}/s{j}")
             origin.append(i)
