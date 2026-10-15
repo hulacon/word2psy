@@ -219,6 +219,21 @@ def test_clip_does_not_warn_on_short_chunks(caplog):
     assert not caplog.records
 
 
+def test_clip_tokenizer_without_encode_still_scores():
+    """HF/SigLIP OpenCLIP tokenizers have no encode(); skip the check."""
+
+    class NoEncode:
+        context_length = 77
+
+        def __call__(self, texts):
+            import torch
+            return torch.zeros(len(texts), 77, dtype=torch.long)
+
+    m = _clip_model()
+    m._tokenizer = NoEncode()
+    assert len(m.predict_batch(["a cat", "word " * 200])) == 2
+
+
 # --- dashboard swallowed every projection error ------------------------------
 
 def _payload(monkeypatch, exc):

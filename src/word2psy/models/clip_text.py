@@ -64,8 +64,11 @@ class CLIPTextModel(BaseModel):
         # Warn if any chunk was truncated. The tokenizer always returns
         # exactly context_length columns, so count each text's own BPE
         # tokens (+2 for start/end) instead of checking the tensor shape.
+        # Only SimpleTokenizer (the default) has encode(); HF/SigLIP
+        # wrappers skip the check rather than fail inference.
         n_ctx = tokens.shape[1]
-        n_long = sum(len(self._tokenizer.encode(t)) + 2 > n_ctx for t in texts)
+        encode = getattr(self._tokenizer, "encode", None)
+        n_long = sum(len(encode(t)) + 2 > n_ctx for t in texts) if encode else 0
         if n_long:
             logger.warning(
                 f"{n_long} text chunk(s) exceed CLIP's {n_ctx}-token context "
