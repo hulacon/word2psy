@@ -2,8 +2,8 @@
 
 Each test pins one defect from the bug-hunting pass: something that either
 produced wrong values without saying so, or swallowed a failure. All are
-default tier: fake models, small fixtures, and the bundled OpenCLIP BPE
-vocabulary (no weights).
+default tier: fake models, small fixtures, and a fake of the OpenCLIP
+tokenizer contract (no weights).
 """
 
 import sys
@@ -60,7 +60,7 @@ class _SlowWord(_FakeWord):
     name = "slow_word"
 
     def predict_batch(self, texts):
-        time.sleep(0.3)
+        time.sleep(1.0)
         return [{"slow_word_length": float(len(t))} for t in texts]
 
 
@@ -126,8 +126,9 @@ def test_sidecar_runtime_is_per_model(tmp_path, monkeypatch):
     meta = json.loads((tmp_path / "scores.meta.json").read_text())
     fast = meta["models"]["fake_word"]["runtime_sec"]
     slow = meta["models"]["slow_word"]["runtime_sec"]
-    assert slow >= 0.3
-    assert fast < 0.2
+    # The old code gave both the same value (total / 2).
+    assert slow >= 1.0
+    assert slow - fast >= 0.5
 
 
 # --- by_sentence drops empty chunks ----------------------------------------
@@ -176,13 +177,28 @@ class _FakeClip:
         return torch.ones(tokens.shape[0], 4)
 
 
-def _clip_model():
-    import open_clip
+class _FakeClipTokenizer:
+    """Mimics open_clip's tokenizer contract: ``__call__`` always returns
+    exactly ``context_length`` columns (pad or truncate), ``encode`` returns
+    the raw BPE ids. Faked because importing open_clip pulls in torchvision,
+    which the CPU-torch CI install cannot import; the real tokenizer's
+    shape was checked by hand (``(n, 77)`` for a 200-word text)."""
 
+    context_length = 77
+
+    def encode(self, text):
+        return list(range(len(text.split())))
+
+    def __call__(self, texts):
+        import torch
+        return torch.zeros(len(texts), self.context_length, dtype=torch.long)
+
+
+def _clip_model():
     from word2psy.models.clip_text import CLIPTextModel
 
     m = CLIPTextModel(device="cpu")
-    m._tokenizer = open_clip.get_tokenizer("ViT-B-32")
+    m._tokenizer = _FakeClipTokenizer()
     m.model = _FakeClip()
     return m
 
