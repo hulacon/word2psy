@@ -100,7 +100,9 @@ def _projection_payload(
         X_proj, info = compute_projection(
             X[valid], method=method, n_components=n_components
         )
-    except Exception as e:  # pragma: no cover - degenerate inputs
+    except ValueError as e:
+        # sklearn's degenerate-input errors; anything else is a code bug
+        # (e.g. an API change) and must not become a missing view.
         warnings.warn(f"{method} projection failed: {e}")
         return None
 

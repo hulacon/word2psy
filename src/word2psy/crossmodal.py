@@ -59,8 +59,10 @@ def _text_labels(df: pd.DataFrame) -> list[str]:
 
 
 def _image_labels(df: pd.DataFrame) -> list[str]:
+    # Skip an identifier that is not unique (e.g. the same basename in two
+    # folders), or distinct images would share one matrix column.
     for col in _IMAGE_ID_COLS:
-        if col in df.columns:
+        if col in df.columns and df[col].is_unique:
             return df[col].astype(str).tolist()
     return [f"image_{i}" for i in range(len(df))]
 

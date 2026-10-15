@@ -196,6 +196,8 @@ def compute_projection(
     missing data (NaN values). Other methods require complete data and will
     fill NaN values with column means.
     """
+    # Own copy: NaN imputation below writes into X.
+    X = np.array(X, dtype=float)
     n_samples, n_features = X.shape
 
     # Validate inputs

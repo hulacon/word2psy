@@ -1,6 +1,15 @@
 """Classic readability metrics per chunk — pure Python via textstat."""
 
+import math
+import re
+
 from word2psy.models.base import BaseModel
+
+_FEATURES = (
+    "readability_flesch_ease", "readability_flesch_kincaid_grade",
+    "readability_gunning_fog", "readability_smog", "readability_coleman_liau",
+    "readability_ari", "readability_dale_chall",
+)
 
 
 class ReadabilityModel(BaseModel):
@@ -14,6 +23,9 @@ class ReadabilityModel(BaseModel):
 
     name = "readability"
     level = "chunk"
+    nulls = {c: {"means": "undefined",
+                 "when": "the chunk has no word characters (empty or punctuation only)"}
+             for c in _FEATURES}
 
     def load(self) -> None:
         import textstat
@@ -21,6 +33,10 @@ class ReadabilityModel(BaseModel):
         self.model = textstat
 
     def predict(self, text: str) -> dict[str, float]:
+        # textstat scores text with no words as 0.0 on every metric, which
+        # reads as a real grade level; there is nothing to measure.
+        if not re.search(r"\w", text):
+            return {c: math.nan for c in _FEATURES}
         ts = self.model
         return {
             "readability_flesch_ease": float(ts.flesch_reading_ease(text)),

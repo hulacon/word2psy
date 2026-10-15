@@ -148,7 +148,7 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         timeseries=False,
         mds_clustering=True,
         timeseries_mode="none",
-        column_patterns=["fasttext_*"],
+        column_patterns=["fasttext_[0-9][0-9][0-9]*"],  # not fasttext_n_pooled
     ),
     "word2vec": FeatureConfig(
         name="word2vec",
@@ -159,7 +159,7 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         timeseries=False,
         mds_clustering=True,
         timeseries_mode="none",
-        column_patterns=["word2vec_*"],
+        column_patterns=["word2vec_[0-9][0-9][0-9]*"],  # not word2vec_n_pooled
     ),
     "gpt2_surprisal": FeatureConfig(
         name="gpt2_surprisal",
