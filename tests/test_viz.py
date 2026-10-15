@@ -216,6 +216,23 @@ class TestProjection:
         X_proj, info = compute_projection(X, method="mds")
         assert X_proj.shape == (20, 2)
 
+    def test_mds_nonmetric_shape(self):
+        X = np.random.randn(20, 5)
+        X_proj, info = compute_projection(X, method="mds_nonmetric")
+        assert X_proj.shape == (20, 2)
+        assert info["xlabel"] == "NMDS1"
+        assert np.isfinite(X_proj).all()
+
+    @pytest.mark.parametrize("method", ["mds", "mds_nonmetric"])
+    def test_mds_no_future_warning(self, method):
+        # `init` is passed explicitly; sklearn >=1.9 warns when it is left to
+        # default (the default changes in 1.10).
+        import warnings
+        X = np.random.randn(20, 5)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error", FutureWarning)
+            compute_projection(X, method=method)
+
     def test_invalid_method(self):
         X = np.random.randn(20, 5)
         with pytest.raises(ValueError, match="Unknown method"):
