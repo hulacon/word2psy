@@ -216,6 +216,31 @@ class TestProjection:
         X_proj, info = compute_projection(X, method="mds")
         assert X_proj.shape == (20, 2)
 
+    def test_mds_nonmetric_shape(self):
+        X = np.random.randn(20, 5)
+        X_proj, info = compute_projection(X, method="mds_nonmetric")
+        assert X_proj.shape == (20, 2)
+        assert info["xlabel"] == "NMDS1"
+        assert np.isfinite(X_proj).all()
+
+    @pytest.mark.parametrize("method,metric", [("mds", True), ("mds_nonmetric", False)])
+    def test_mds_pins_init_and_metric(self, method, metric, monkeypatch):
+        # `init` must be passed explicitly: its default changes in sklearn
+        # 1.10, and only 1.9 warns about it, so assert the kwargs directly.
+        import sklearn.manifold
+
+        seen = {}
+
+        class RecordingMDS(sklearn.manifold.MDS):
+            def __init__(self, **kwargs):
+                seen.update(kwargs)
+                super().__init__(**kwargs)
+
+        monkeypatch.setattr(sklearn.manifold, "MDS", RecordingMDS)
+        compute_projection(np.random.randn(20, 5), method=method)
+        assert seen["init"] == "random"
+        assert seen["metric_mds"] is metric
+
     def test_invalid_method(self):
         X = np.random.randn(20, 5)
         with pytest.raises(ValueError, match="Unknown method"):
