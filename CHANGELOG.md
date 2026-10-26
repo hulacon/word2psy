@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **CSV/TSV text and ID columns are verbatim again on pandas 3.1.** 0.11.0
+  read them with `converters=str`, which pandas 3.1 NA-parses after
+  conversion, so `null`, `None`, `NA`, `nan`, `N/A` and blank cells came back
+  as NaN (scored as the word "nan"), and so did blank IDs. Runs on
+  pandas >= 3.1 with such cells should be re-scored. Earlier pandas was
+  unaffected.
+
 ## [0.11.0] - 2026-10-15
 
 Fixes from a bug-hunting pass (#4). **Several change existing outputs**;
