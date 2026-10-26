@@ -218,13 +218,9 @@ def read_inputs(
 
     import pandas as pd
 
-    # Text and ID cells are read verbatim. pandas' default NA parsing would
-    # turn the stimulus words "null", "None", "NA", "nan" and "N/A" into NaN,
-    # and number-parse IDs ("01" and "1" both -> 1; one blank -> "2.0").
-    verbatim = {c: str for c in (text_column, id_column) if c}
+    sep = TABULAR_SUFFIXES[path.suffix.lower()]
     try:
-        df = pd.read_csv(path, sep=TABULAR_SUFFIXES[path.suffix.lower()],
-                         converters=verbatim)
+        df = pd.read_csv(path, sep=sep)
     except Exception as e:
         raise TextLoadError(path, str(e)) from e
 
@@ -234,6 +230,20 @@ def read_inputs(
                 path,
                 f"{col_arg} {col!r} not found; available columns: {list(df.columns)}",
             )
+
+    # Text and ID cells are read verbatim. pandas' default NA parsing would
+    # turn the stimulus words "null", "None", "NA", "nan" and "N/A" into NaN,
+    # and number-parse IDs ("01" and "1" both -> 1; one blank -> "2.0").
+    # A second read, because keep_default_na=False applies to every column and
+    # passthrough columns keep default parsing. (converters=str stopped being
+    # enough in pandas 3.1, which NA-parses the converted strings.)
+    verbatim = list(dict.fromkeys(c for c in (text_column, id_column) if c))
+    try:
+        cells = pd.read_csv(path, sep=sep, usecols=verbatim, dtype=str,
+                            keep_default_na=False)
+    except Exception as e:
+        raise TextLoadError(path, str(e)) from e
+    df[verbatim] = cells[verbatim]
 
     text = df[text_column].astype(str).tolist()
     labels = df[id_column].astype(str).tolist() if id_column else None
