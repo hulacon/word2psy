@@ -58,7 +58,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ipython"]
-ebind = ["ebind @ git+https://github.com/encord-team/ebind"]
+ebind = ["ebind @ git+https://github.com/encord-team/ebind@7909701e9372353ca678b9515f9f61cf87c83c71"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

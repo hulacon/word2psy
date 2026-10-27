@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- The EBind checkpoint `encord-team/ebind-full` loads at a pinned hub revision (`482831d`, `DEFAULT_REVISION`) instead of whatever `main` is. That snapshot has been `main` since 2025-11-19, so features are unchanged. viz2psy, word2psy and aud2psy pin the same revision, so the shared space cannot split when the hub moves. A non-default checkpoint still loads from `main`. The `ebind` extra pins the `ebind` package to `7909701`, the build the family has been running on.
+
 ### Fixed
 
 - **CSV/TSV text and ID columns are verbatim again on pandas 3.1.** 0.11.0
