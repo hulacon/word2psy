@@ -4,7 +4,7 @@ module actually being exercised (EBind pulls the full PE checkpoint)."""
 import numpy as np
 import torch
 
-from word2psy.models.ebind_text import EMBED_DIM, EBindTextModel
+from word2psy.models.ebind_text import DEFAULT_REVISION, EMBED_DIM, EBindTextModel
 
 
 class TestEBindTextModel:
@@ -43,3 +43,10 @@ class TestEBindTextModel:
         model._tokenizer = lambda t: torch.zeros(32, dtype=torch.long)
         vec = np.array(list(model.predict("carrot").values()))
         assert abs(np.linalg.norm(vec) - 1.0) < 1e-5
+
+
+def test_default_checkpoint_loads_the_pinned_revision():
+    """The *2psy repos share one embedding space only while they load the same
+    snapshot of the checkpoint. A floating ``main`` would split it silently."""
+    assert EBindTextModel(device="cpu").revision == DEFAULT_REVISION
+    assert EBindTextModel(checkpoint="someone/other-ebind", device="cpu").revision == "main"
