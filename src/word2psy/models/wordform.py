@@ -31,6 +31,33 @@ class WordformModel(BaseModel):
         "means": "missing",
         "when": "word not in CMUdict (n_syllables falls back to a regex estimate; phonemes have none)"}}
     level = "word"
+    labels = {
+        "default": {"interpretability": "nameable", "derivation": "formula"},
+        "columns": {
+            "wordform_length": {
+                "LongName": "Word length",
+                "Description": "Number of characters in the word token",
+                "Units": "characters",
+            },
+            "wordform_n_syllables": {
+                "LongName": "Syllable count",
+                "Description": ("Syllables in the word's first CMUdict pronunciation; a "
+                                "vowel-group regex estimate for words not in CMUdict"),
+                "Units": "syllables",
+            },
+            "wordform_n_phonemes": {
+                "LongName": "Phoneme count",
+                "Description": "Phonemes in the word's first CMUdict pronunciation",
+                "Units": "phonemes",
+            },
+            "wordform_old20": {
+                "LongName": "Orthographic Levenshtein distance 20 (OLD20)",
+                "Description": ("Mean Levenshtein distance from the word to its 20 closest "
+                                f"words among wordfreq's {LEXICON_SIZE:,} most frequent "
+                                "English words (Yarkoni, Balota & Yap, 2008)"),
+            },
+        },
+    }
 
     def load(self) -> None:
         import nltk

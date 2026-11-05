@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-05
+
+### Added
+
+- **Contract B schema 1.2 (`labels`):** every model entry in the sidecar
+  carries `labels`, saying what each feature column is and how its value is
+  computed (constellation-contracts §4.1). Declared on the model class as
+  `BaseModel.labels = {"default": {...}, "columns": {<column>: {...}}}`;
+  a `columns` entry replaces individual default keys (key-wise merge). Every
+  column resolves to `interpretability` (`nameable` / `opaque`) and
+  `derivation` (`formula`, `formula-on-model`, `trained-on-labels`, `probe`,
+  `zero-shot`, `embedding`, `bookkeeping`); `derived_from` names the parent
+  model's `checkpoint` for `formula-on-model` / `probe` / `zero-shot`. BIDS
+  column keys (`LongName`, `Description`, `Units`) where they are obvious.
+  `schema_version` is now `"1.2"`. Feature values are unchanged.
+  - `lexical_norms`: the 23 ridge-predicted norms are `probe`, derived from
+    `crawl-300d-2M-subword` (the `fasttext` checkpoint), each naming the norm
+    list it was trained on; `zipf_frequency` (wordfreq lookup) is `formula`.
+  - `gpt2_surprisal`: `formula-on-model` on `gpt2`, in bits.
+  - `emotion`, `sentiment`: `trained-on-labels`.
+  - `wordform`, `readability`, `interaction`: `formula`.
+  - `fasttext`, `word2vec`, `minilm`, `clip_text`, `clap_text`, `ebind_text`:
+    `opaque` `embedding`; the `{model}_n_pooled` count columns are
+    `bookkeeping`.
+  - Chunk aggregates (`{feature}_{mean,sd,min,max}`) inherit their word
+    column's labels.
+  - `source_validation` is left empty: the repo records no per-column
+    evaluation values from the models' sources.
+- `metadata.model_labels`, `resolve_label` and `label_problems` (the checks
+  the contract test runs).
+- `word2psy sidecar refresh` also writes `labels` and bumps sidecars to 1.2
+  (JSON only, as for `nulls`).
+- `tests/test_labels.py`: the producer-duty contract test (every inventoried
+  column, chunk aggregates and pooling counts included, resolves; every
+  `columns` key is a real column; vocabularies; `derived_from` exactly where
+  required and equal to a recorded checkpoint; refresh round-trip).
+
 ### Changed
 
 - The EBind checkpoint `encord-team/ebind-full` loads at a pinned hub revision (`482831d`, `DEFAULT_REVISION`) instead of whatever `main` is. That snapshot has been `main` since 2025-11-19, so features are unchanged. viz2psy, word2psy and aud2psy pin the same revision, so the shared space cannot split when the hub moves. A non-default checkpoint still loads from `main`. The `ebind` extra pins the `ebind` package to `7909701`, the build the family has been running on.

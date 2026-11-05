@@ -27,6 +27,17 @@ class CLAPTextModel(BaseModel):
     # equality before pairing the shared text/audio space.
     checkpoint = CHECKPOINT
 
+    labels = {
+        "default": {
+            "interpretability": "opaque",
+            "derivation": "embedding",
+            "Description": ("LAION-CLAP (larger_clap_music_and_speech) text-embedding dimension "
+                            "of the chunk text, L2-normalised; shares its space with aud2psy's "
+                            "clap audio embedding"),
+        },
+        "columns": {},
+    }
+
     def __init__(self, checkpoint: str = CHECKPOINT, device: str | None = None):
         super().__init__(device=device)
         self.checkpoint = checkpoint

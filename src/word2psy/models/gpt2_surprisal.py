@@ -103,6 +103,20 @@ class GPT2SurprisalModel(BaseModel):
                 "text tokenizes to nothing"}}
     level = "context"
     checkpoint = "gpt2"  # Hugging Face model id
+    # derived_from is the class checkpoint, as the sidecar records it (CLI runs
+    # never override it).
+    labels = {
+        "default": {
+            "interpretability": "nameable",
+            "derivation": "formula-on-model",
+            "derived_from": checkpoint,
+            "LongName": "GPT-2 surprisal",
+            "Description": ("-log2 p(word | preceding chunk context) under GPT-2, the word's "
+                            "BPE token log-probabilities summed, with a BOS token prepended"),
+            "Units": "bits",
+        },
+        "columns": {},
+    }
 
     def __init__(
         self,

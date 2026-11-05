@@ -26,6 +26,18 @@ class ReadabilityModel(BaseModel):
     nulls = {c: {"means": "undefined",
                  "when": "the chunk has no word characters (empty or punctuation only)"}
              for c in _FEATURES}
+    labels = {
+        "default": {
+            "interpretability": "nameable",
+            "derivation": "formula",
+            "Description": "Published readability formula over the chunk text (textstat)",
+        },
+        "columns": {c: {"LongName": n} for c, n in zip(_FEATURES, (
+            "Flesch Reading Ease", "Flesch-Kincaid Grade Level", "Gunning Fog Index",
+            "SMOG Index", "Coleman-Liau Index", "Automated Readability Index",
+            "Dale-Chall Readability Score",
+        ))},
+    }
 
     def load(self) -> None:
         import textstat

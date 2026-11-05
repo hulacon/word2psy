@@ -17,6 +17,17 @@ class EmotionModel(BaseModel):
     name = "emotion"
     level = "chunk"
     checkpoint = "SamLowe/roberta-base-go_emotions"  # Hugging Face model id
+    labels = {
+        "default": {
+            "interpretability": "nameable",
+            "derivation": "trained-on-labels",
+            "Description": ("Probability (independent sigmoid) that the chunk expresses the "
+                            "GoEmotions category named by the column suffix (27 emotions plus "
+                            "neutral; Demszky et al., 2020), from a RoBERTa classifier "
+                            "fine-tuned on the GoEmotions human labels"),
+        },
+        "columns": {},
+    }
 
     def __init__(
         self,

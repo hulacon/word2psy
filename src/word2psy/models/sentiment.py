@@ -15,6 +15,16 @@ class SentimentModel(BaseModel):
     name = "sentiment"
     level = "chunk"
     checkpoint = "cardiffnlp/twitter-roberta-base-sentiment-latest"  # HF model id
+    labels = {
+        "default": {
+            "interpretability": "nameable",
+            "derivation": "trained-on-labels",
+            "Description": ("Probability (softmax over negative / neutral / positive) of the "
+                            "sentiment class named by the column suffix, from a Twitter RoBERTa "
+                            "fine-tuned for three-way sentiment classification"),
+        },
+        "columns": {},
+    }
 
     def __init__(
         self,

@@ -46,6 +46,14 @@ class BaseModel(ABC):
     # no column can be null. Chunk aggregates and pooled embeddings get their
     # entries derived in ``metadata.model_nulls``.
     nulls: dict[str, dict[str, str]] = {}
+    # Contract B §4.1 (schema 1.2): what each column is and how its value is
+    # computed. ``default`` applies to every column in the model's inventory;
+    # ``columns.<name>`` replaces individual default keys for that column
+    # (key-wise merge). After the merge every column needs
+    # ``interpretability`` (nameable | opaque) and ``derivation``; see
+    # ``metadata.LABEL_VOCAB``. Chunk aggregates inherit their word column's
+    # labels (``metadata.model_labels``).
+    labels: dict[str, dict] = {"default": {}, "columns": {}}
 
     def __init__(self, device: str | None = None):
         if device:

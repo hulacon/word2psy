@@ -51,6 +51,27 @@ class InteractionModel(BaseModel):
                        "interaction_question")}
     level = "chunk"
     checkpoint = None  # analytic — closed lists above, no learned weights
+    labels = {
+        "default": {"interpretability": "nameable", "derivation": "formula",
+                    "Units": "proportion"},
+        "columns": {
+            f"interaction_{k}": {"Description": d} for k, d in (
+                ("first_person_sing", "Share of the chunk's word tokens that are first-person "
+                                      "singular pronouns (closed list)"),
+                ("first_person_plur", "Share of the chunk's word tokens that are first-person "
+                                      "plural pronouns (closed list)"),
+                ("second_person", "Share of the chunk's word tokens that are second-person "
+                                  "pronouns (closed list)"),
+                ("third_person", "Share of the chunk's word tokens that are person-referring "
+                                 "third-person pronouns (closed list; 'it' excluded)"),
+                ("person_noun", "Share of the chunk's word tokens that are person-referring "
+                                "nouns (closed list)"),
+                ("discourse_marker", "Share of the chunk's word tokens that are conversational "
+                                     "discourse markers (closed list)"),
+                ("question", "Share of the chunk's sentences that end in a question mark"),
+            )
+        },
+    }
 
     def load(self) -> None:
         import nltk

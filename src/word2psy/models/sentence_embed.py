@@ -16,6 +16,16 @@ class SentenceEmbedModel(BaseModel):
     level = "chunk"
     checkpoint = "sentence-transformers/all-MiniLM-L6-v2"  # Hugging Face model id
 
+    labels = {
+        "default": {
+            "interpretability": "opaque",
+            "derivation": "embedding",
+            "Description": ("all-MiniLM-L6-v2 sentence-embedding dimension of the chunk text, "
+                            "L2-normalised"),
+        },
+        "columns": {},
+    }
+
     def __init__(
         self,
         model_name: str = "sentence-transformers/all-MiniLM-L6-v2",

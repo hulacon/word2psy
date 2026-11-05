@@ -1,11 +1,11 @@
-"""`word2psy sidecar refresh`: bring existing sidecars up to schema 1.1.
+"""`word2psy sidecar refresh`: bring existing sidecars up to the current schema.
 
 Contract B 1.1 adds a `nulls` map to every model entry (what a NaN in each
-column means). Feature values do not change between 1.0 and 1.1, so an old
-family is brought forward by rewriting its `.meta.json` only; a CSV is never
-written.
+column means); 1.2 adds `labels` (what each column is and how it is
+computed). Feature values do not change from 1.0 to 1.2, so an old family is
+brought forward by rewriting its `.meta.json` only; a CSV is never written.
 
-Two things are written per model entry:
+Three things are written per model entry:
 
 - `chunk_aggregates` -- the `{feature}_{stat}` columns the pipeline appended
   to the chunks table. 1.0 sidecars never listed them, and a `nulls` key must
@@ -13,6 +13,8 @@ Two things are written per model entry:
   table's actual header first.
 - `nulls` -- declared entries for the model's columns plus the derived
   aggregate entries (`metadata.model_nulls`).
+- `labels` -- the model's declared labels, filtered to its columns, with the
+  aggregates inheriting their word column's entry (`metadata.model_labels`).
 
 Every one of the model's columns is then read back from the family's tables,
 and a NaN in an undeclared column refuses the refresh for that sidecar
@@ -29,7 +31,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from word2psy.exceptions import Word2PsyError
-from word2psy.metadata import AGGREGATE_STATS, SCHEMA_VERSION, model_nulls
+from word2psy.metadata import AGGREGATE_STATS, SCHEMA_VERSION, model_labels, model_nulls
 
 
 @dataclass
@@ -102,6 +104,8 @@ def refresh_sidecar(path: str | Path, *, dry_run: bool = False) -> RefreshResult
             entry["chunk_aggregates"] = {"stats": list(AGGREGATE_STATS), "nan_policy": "omit",
                                          "sd_ddof": 1, "columns": aggregates}
         entry["nulls"] = model_nulls(name, cols, aggregates, pooled)
+        entry["labels"] = model_labels(name, cols, aggregates, pooled,
+                                       count_column=(pooling or {}).get("count_column"))
         mine = set(cols) | set(aggregates) | set(pooled)
         nan_cols: set[str] = set()
         for df in tables.values():
@@ -122,7 +126,8 @@ def refresh_sidecar(path: str | Path, *, dry_run: bool = False) -> RefreshResult
     new.setdefault("refreshed", []).append({
         "by": f"word2psy {__version__}",
         "at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-        "fields": ["schema_version", "models.*.nulls", "models.*.chunk_aggregates"],
+        "fields": ["schema_version", "models.*.nulls", "models.*.labels",
+                   "models.*.chunk_aggregates"],
         "from_schema_version": meta.get("schema_version"),
     })
     if not dry_run:
@@ -143,9 +148,9 @@ def main(argv: list[str]) -> int:
     sub = parser.add_subparsers(dest="sidecar_cmd")
     p_rf = sub.add_parser(
         "refresh",
-        help="Bring sidecars to the current Contract B schema (1.1: per-model `nulls`, "
-             "plus the chunk-aggregate inventory). Rewrites JSON only, never a CSV; refuses "
-             "a sidecar whose tables hold NaN in an undeclared column.",
+        help="Bring sidecars to the current Contract B schema (1.2: per-model `nulls` and "
+             "`labels`, plus the chunk-aggregate inventory). Rewrites JSON only, never a "
+             "CSV; refuses a sidecar whose tables hold NaN in an undeclared column.",
     )
     p_rf.add_argument("paths", nargs="+",
                       help=".meta.json files, or directories searched recursively "

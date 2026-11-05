@@ -28,6 +28,17 @@ class CLIPTextModel(BaseModel):
     # equality before pairing the shared text/image space.
     checkpoint = f"{_DEFAULT_MODEL_NAME}/{_DEFAULT_PRETRAINED}"
 
+    labels = {
+        "default": {
+            "interpretability": "opaque",
+            "derivation": "embedding",
+            "Description": ("OpenCLIP ViT-B-32 (laion2b_s34b_b79k) text-embedding dimension of "
+                            "the chunk text, L2-normalised; shares its space with viz2psy's "
+                            "clip image embedding"),
+        },
+        "columns": {},
+    }
+
     def __init__(
         self,
         model_name: str = _DEFAULT_MODEL_NAME,
