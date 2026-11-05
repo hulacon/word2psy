@@ -43,6 +43,17 @@ class EBindTextModel(BaseModel):
     # exactly — psytwill asserts equality before pairing shared spaces.
     checkpoint = DEFAULT_CHECKPOINT
 
+    labels = {
+        "default": {
+            "interpretability": "opaque",
+            "derivation": "embedding",
+            "Description": ("EBind text-embedding dimension of the chunk text (PE-Core-L14-336 "
+                            "text arm), L2-normalised; shares its space with viz2psy's ebind "
+                            "and aud2psy's ebind_audio"),
+        },
+        "columns": {},
+    }
+
     def __init__(self, checkpoint: str = DEFAULT_CHECKPOINT, device: str | None = None):
         super().__init__(device=device)
         self.checkpoint = checkpoint

@@ -22,6 +22,24 @@ class Word2VecModel(BaseModel):
     level = "word"
     checkpoint = "word2vec-google-news-300"  # gensim-data vector-set name
 
+    labels = {
+        "default": {
+            "interpretability": "opaque",
+            "derivation": "embedding",
+            "Description": ("GoogleNews word2vec word-vector dimension; on the chunks table, "
+                            "the mean over the chunk's in-vocabulary words"),
+        },
+        "columns": {
+            "word2vec_n_pooled": {
+                "interpretability": "opaque",
+                "derivation": "bookkeeping",
+                "Description": "Number of the chunk's words that contributed a vector to the "
+                               "mean-pooled chunk vector (chunks table only)",
+                "Units": "words",
+            },
+        },
+    }
+
     # the same names hold the chunk-pooled vectors (pipeline.pool_word_embeddings)
     nulls = {f"word2vec_{i:03d}": {
         "means": "missing",

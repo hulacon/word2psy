@@ -3,6 +3,7 @@
 Generates a sidecar JSON file describing input, output, models, and features.
 """
 
+import copy
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -68,7 +69,7 @@ def get_model_checkpoint(model_name: str) -> str | None:
         return None
 
 
-SCHEMA_VERSION = "1.1"  # Contract B §4.1 extractor output convention
+SCHEMA_VERSION = "1.2"  # Contract B §4.1 extractor output convention
 
 AGGREGATE_STATS = ("mean", "sd", "min", "max")
 
@@ -118,6 +119,90 @@ def model_nulls(
         else:
             out[col] = {"means": "undefined", "when": "the chunk has no words"}
     return out
+
+
+# Contract B §4.1 (schema 1.2) label vocabularies.
+INTERPRETABILITY = ("nameable", "opaque")
+DERIVATIONS = ("formula", "formula-on-model", "trained-on-labels", "probe", "zero-shot",
+               "embedding", "bookkeeping")
+NEEDS_DERIVED_FROM = frozenset({"formula-on-model", "probe", "zero-shot"})
+LABEL_KEYS = frozenset({"interpretability", "derivation", "derived_from", "source_validation",
+                        "LongName", "Description", "Units", "Levels", "TermURL"})
+SOURCE_VALIDATION_KEYS = frozenset({"citation", "eval_dataset", "metric", "value"})
+
+
+def declared_labels(model_name: str) -> dict[str, dict]:
+    """The model class's own ``labels`` (a deep copy). Raises on a lookup error,
+    like ``declared_nulls``: a silent empty map would leave columns unlabelled."""
+    from word2psy.cli import _load_model_class
+
+    lab = _load_model_class(model_name).labels
+    return {"default": copy.deepcopy(lab.get("default", {})),
+            "columns": copy.deepcopy(lab.get("columns", {}))}
+
+
+def resolve_label(labels: dict[str, dict], column: str) -> dict[str, Any]:
+    """One column's labels: the default, with its ``columns`` entry merged key-wise."""
+    return {**labels.get("default", {}), **labels.get("columns", {}).get(column, {})}
+
+
+def model_labels(
+    model_name: str,
+    columns: list[str],
+    aggregate_columns: list[str] | None = None,
+    pooled_columns: list[str] | None = None,
+    count_column: str | None = None,
+) -> dict[str, dict]:
+    """The sidecar ``labels`` map: the declared default, the declared ``columns``
+    entries for emitted columns (word/chunk features, pooled dimensions, the
+    pooling count column), and one entry per chunk aggregate ``{f}_{stat}``
+    copying the word column ``f``'s entry. Aggregates of a column without an
+    entry need none: the default already covers them."""
+    declared = declared_labels(model_name)
+    emitted = set(columns) | set(pooled_columns or ())
+    if count_column:
+        emitted.add(count_column)
+    out = {c: e for c, e in declared["columns"].items() if c in emitted}
+    for col in aggregate_columns or ():
+        feat = col.rsplit("_", 1)[0]
+        if feat in declared["columns"]:
+            out[col] = copy.deepcopy(declared["columns"][feat])
+    return {"default": declared["default"], "columns": out}
+
+
+def label_problems(labels: dict[str, dict], inventory: list[str]) -> list[str]:
+    """What is wrong with a ``labels`` map against a column inventory (empty if
+    nothing): an unresolved required key, a ``columns`` key outside the
+    inventory, a value outside the vocabularies, an unknown key, or
+    ``derived_from`` present where it is forbidden or absent where required."""
+    problems: list[str] = []
+    if set(labels) != {"default", "columns"}:
+        problems.append(f"labels keys are {sorted(labels)}, not ['columns', 'default']")
+    inv = set(inventory)
+    for col in sorted(set(labels.get("columns", {})) - inv):
+        problems.append(f"{col}: labelled but not in the inventory")
+    for key in set(labels.get("default", {})) - LABEL_KEYS:
+        problems.append(f"default: unknown key {key!r}")
+    for col, entry in labels.get("columns", {}).items():
+        for key in set(entry) - LABEL_KEYS:
+            problems.append(f"{col}: unknown key {key!r}")
+    for col in inventory:
+        lab = resolve_label(labels, col)
+        if lab.get("interpretability") not in INTERPRETABILITY:
+            problems.append(f"{col}: interpretability {lab.get('interpretability')!r}")
+        deriv = lab.get("derivation")
+        if deriv not in DERIVATIONS:
+            problems.append(f"{col}: derivation {deriv!r}")
+        has_parent = bool(lab.get("derived_from"))
+        if has_parent != (deriv in NEEDS_DERIVED_FROM):
+            problems.append(f"{col}: derived_from {'present' if has_parent else 'absent'} "
+                            f"with derivation {deriv!r}")
+        if "derived_from" in lab and not isinstance(lab["derived_from"], str):
+            problems.append(f"{col}: derived_from is not a string")
+        for item in lab.get("source_validation", []):
+            if set(item) != SOURCE_VALIDATION_KEYS:
+                problems.append(f"{col}: source_validation item keys {sorted(item)}")
+    return problems
 
 
 def get_feature_info(
@@ -231,6 +316,9 @@ class MetadataBuilder:
             }
         pooled_dims = [c for c in (pooled_features or []) if not c.endswith("_n_pooled")]
         entry["nulls"] = model_nulls(model_name, feature_names, aggregate_features, pooled_dims)
+        entry["labels"] = model_labels(
+            model_name, feature_names, aggregate_features, pooled_dims,
+            count_column=f"{model_name}_n_pooled" if pooled_features else None)
         self.models[model_name] = entry
         self.model_features[model_name] = feature_names
         self.total_runtime_sec += runtime_sec

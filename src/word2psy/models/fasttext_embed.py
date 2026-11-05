@@ -37,6 +37,25 @@ class FastTextModel(BaseModel):
     level = "word"
     checkpoint = "crawl-300d-2M-subword"  # fastText vector-set name (.bin)
 
+    labels = {
+        "default": {
+            "interpretability": "opaque",
+            "derivation": "embedding",
+            "Description": ("fastText crawl-300d-2M-subword word-vector dimension (the word's "
+                            "dictionary row; subword composition for out-of-vocabulary words); "
+                            "on the chunks table, the mean over the chunk's words"),
+        },
+        "columns": {
+            "fasttext_n_pooled": {
+                "interpretability": "opaque",
+                "derivation": "bookkeeping",
+                "Description": "Number of the chunk's words that contributed a vector to the "
+                               "mean-pooled chunk vector (chunks table only)",
+                "Units": "words",
+            },
+        },
+    }
+
     def load(self) -> None:
         from word2psy.norms.train import load_fasttext
 

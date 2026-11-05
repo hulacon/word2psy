@@ -52,7 +52,7 @@ def _nan_cols(df):
 
 def test_all_nans_declared_and_every_key_inventoried(scored):
     words, chunks, meta = scored
-    assert meta["schema_version"] == SCHEMA_VERSION == "1.1"
+    assert meta["schema_version"] == SCHEMA_VERSION == "1.2"
     declared, inventoried = set(), set()
     for entry in meta["models"].values():
         declared |= set(entry["nulls"])
