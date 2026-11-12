@@ -71,6 +71,10 @@ returns a ModelOutput; the projection is `pooler_output`.)
     Kuperman AoA, Glasgow, socialness, body-object interaction, Lancaster
     sensorimotor) and caches them as
     parquet. `NORM_SOURCES` holds URLs + parsing specs.
+  - `binder.py` reads Binder et al. (2016)'s 65 experiential attributes from a
+    **user-supplied** spreadsheet (path or `WORD2PSY_BINDER_RATINGS`); never downloaded
+    (citation request, no licence). The error names the sources. `ATTRIBUTES` is the
+    attribute → (domain, definition) map in the sheet's column order.
   - `train.py` fits `RidgeCV` regressors on fastText `crawl-300d-2M-subword` vectors to
     extrapolate each norm to arbitrary words; caches fitted models as joblib.
     `NORM_DIMENSIONS` is the single source of truth for norm feature names. Multi-word
