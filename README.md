@@ -208,6 +208,10 @@ originals if you use the corresponding features):
   [doi:10.3758/s13421-021-01266-y](https://doi.org/10.3758/s13421-021-01266-y))
 - Speer et al., [wordfreq](https://github.com/rspeer/wordfreq) — Zipf frequency
 
+`word2psy.norms.binder` reads one more database, which word2psy does **not** download:
+
+- Binder, J. R., Conant, L. L., Humphries, C. J., Fernandino, L., Simons, S. B., Aguilar, M., & Desai, R. H. (2016). Toward a brain-based componential semantic representation. *Cognitive Neuropsychology, 33*(3–4), 130–174. [doi:10.1080/02643294.2016.1147426](https://doi.org/10.1080/02643294.2016.1147426) — 65 experiential attributes in 14 domains, rated for 535 words. The ratings are distributed with a request to cite the article and no licence, so you supply the spreadsheet (`WordSet1_Ratings.xlsx`) yourself: pass its path to `load_binder()` or set `WORD2PSY_BINDER_RATINGS`. It is available from the [Binder lab's page for the article](https://www.neuro.mcw.edu/?p=609) (`word_ratings.zip`) and, as `data/binder-norms.xlsx`, from [Oneata, Elliott & Frank (2025)](https://github.com/danoneata/seeing-what-tastes-good); the error raised without it says the same.
+
 Norm predictions are **unbounded ridge outputs anchored to each source's
 rating scale, not ratings on it**: a strongly-typed word can score past the
 scale ends ("dog" predicts 6.2 on 1–5 concreteness, 776 on 100–700 animacy).

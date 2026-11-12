@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-12
+
+### Added
+
+- **`word2psy.norms.binder`**: reads Binder et al. (2016)'s experiential attribute
+  ratings (65 attributes in 14 domains, 535 words) from a spreadsheet the user
+  supplies (`load_binder(path)` or `$WORD2PSY_BINDER_RATINGS`). The ratings carry a
+  citation request and no licence, so nothing downloads them; a missing or wrong
+  file raises `NormDataError` naming where to get it (the Binder lab's page,
+  Oneata et al. 2025's repository) and the citation. The loader checks the
+  readme's column layout, returns one row per word (a word rated as two word
+  classes keeps the row with more rated attributes), keeps unrated attributes as
+  NaN, and records the file's sha256. `ATTRIBUTES` maps each attribute to its
+  domain and the definition raters were given. No model emits these columns.
+- README *Norm Sources*: the Binder et al. (2016) citation.
+
 ## [0.12.0] - 2026-11-05
 
 ### Added
