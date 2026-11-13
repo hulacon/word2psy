@@ -80,7 +80,11 @@ class LexicalNormsExperientialModel(BaseModel):
     def predict_batch(self, texts: list[str]) -> list[dict[str, float]]:
         words = [t.strip().lower() for t in texts]
         unique = list(dict.fromkeys(words))
-        X = np.array([self._ft_model.get_word_vector(w) for w in unique], dtype=np.float64)
-        P = X @ self._W + self._b
+        # One product per word, not one matrix product per batch: BLAS may sum a
+        # multi-row product in a different order, so a word's value would depend in
+        # the last bits on which words share its batch. A word-level column must be a
+        # function of the word alone.
+        P = [np.asarray(self._ft_model.get_word_vector(w), dtype=np.float64) @ self._W + self._b
+             for w in unique]
         by_word = {w: dict(zip(self._columns, map(float, row))) for w, row in zip(unique, P)}
         return [dict(by_word[w]) for w in words]

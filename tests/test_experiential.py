@@ -121,7 +121,9 @@ def test_model_emits_exactly_the_weights_columns(tmp_path, ratings_file, monkeyp
     w = ex.read_weights(out)
     vec = StubFastText().get_word_vector("dog").astype(np.float64)
     np.testing.assert_allclose(list(rows[1].values()), vec @ w["W"] + w["b"])
-    assert m.predict("dog") == rows[1]
+    assert m.predict("dog") == rows[1]  # exactly: a word's value does not depend on its batch
+    many = m.predict_batch(["dog"] + [f"filler{i}" for i in range(50)])
+    assert many[0] == rows[1]
 
 
 def test_model_load_fails_before_fasttext_without_weights(tmp_path, monkeypatch):
