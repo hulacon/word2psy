@@ -107,6 +107,7 @@ words_df, chunks_df = score_text(
 
 | Model | Level | Output | Description |
 |-------|-------|--------|-------------|
+| `lexical_norms_experiential` | word | up to 65 features | **Opt-in.** Binder et al. (2016) experiential attributes (vision, sound, upper-limb action, fear, …; 0–6) predicted from fastText by ridge probes trained on the user-supplied ratings; emits exactly the attributes its weights hold. Build the weights once with `scripts/train_experiential.py --ratings WordSet1_Ratings.xlsx` and set `WORD2PSY_EXPERIENTIAL_WEIGHTS` (or leave them in the cache); without them the model refuses to load |
 | `lexical_norms` | word | 24 features | 23 psycholinguistic norms predicted from fastText embeddings via ridge regression (concreteness, valence, arousal, dominance, age of acquisition, imageability, familiarity, semantic size, gender association, socialness, body-object interaction, animacy, 11 Lancaster sensorimotor dimensions), plus Zipf word frequency |
 | `wordform` | word | 4 features | Length, syllable and phoneme counts (CMUdict), and orthographic OLD20 neighborhood distance |
 | `fasttext` | word | 300-d embedding | fastText `crawl-300d-2M-subword` static embeddings; subword-based, so every string gets a vector (no OOV) |
@@ -208,7 +209,7 @@ originals if you use the corresponding features):
   [doi:10.3758/s13421-021-01266-y](https://doi.org/10.3758/s13421-021-01266-y))
 - Speer et al., [wordfreq](https://github.com/rspeer/wordfreq) — Zipf frequency
 
-`word2psy.norms.binder` reads one more database, which word2psy does **not** download:
+`word2psy.norms.binder` reads one more database, which word2psy does **not** download (it trains `lexical_norms_experiential`):
 
 - Binder, J. R., Conant, L. L., Humphries, C. J., Fernandino, L., Simons, S. B., Aguilar, M., & Desai, R. H. (2016). Toward a brain-based componential semantic representation. *Cognitive Neuropsychology, 33*(3–4), 130–174. [doi:10.1080/02643294.2016.1147426](https://doi.org/10.1080/02643294.2016.1147426) — 65 experiential attributes in 14 domains, rated for 535 words. The ratings are distributed with a request to cite the article and no licence, so you supply the spreadsheet (`WordSet1_Ratings.xlsx`) yourself: pass its path to `load_binder()` or set `WORD2PSY_BINDER_RATINGS`. It is available from the [Binder lab's page for the article](https://www.neuro.mcw.edu/?p=609) (`word_ratings.zip`) and, as `data/binder-norms.xlsx`, from [Oneata, Elliott & Frank (2025)](https://github.com/danoneata/seeing-what-tastes-good); the error raised without it says the same.
 

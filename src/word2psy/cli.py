@@ -62,6 +62,11 @@ MODEL_REGISTRY = {
         "LexicalNormsModel",
         "23 psycholinguistic word norms + Zipf frequency",
     ),
+    "lexical_norms_experiential": (
+        "word2psy.models.lexical_norms_experiential",
+        "LexicalNormsExperientialModel",
+        "Binder et al. (2016) experiential attributes, fastText probe (opt-in; user-supplied ratings)",
+    ),
     "wordform": (
         "word2psy.models.wordform",
         "WordformModel",

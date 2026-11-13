@@ -32,6 +32,7 @@ def get_model_version(model_name: str) -> str:
         "clip_text": ("open_clip_torch", None),
         "ebind_text": ("ebind", None),
         "lexical_norms": ("scikit-learn", "fasttext+ridge"),
+        "lexical_norms_experiential": ("numpy", "fasttext+ridge"),
         "gpt2_surprisal": ("transformers", None),
         "fasttext": ("fasttext-wheel", None),
         "word2vec": ("gensim", None),

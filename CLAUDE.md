@@ -75,6 +75,12 @@ returns a ModelOutput; the projection is `pooler_output`.)
     **user-supplied** spreadsheet (path or `WORD2PSY_BINDER_RATINGS`); never downloaded
     (citation request, no licence). The error names the sources. `ATTRIBUTES` is the
     attribute → (domain, definition) map in the sheet's column order.
+  - `experiential.py` fits one ridge probe per Binder attribute on fastText vectors
+    (`get_word_vector`, as `lexical_norms`), alpha by 5-fold CV, standardisation folded
+    into `W`/`b`, and writes/validates the weights npz (`WORD2PSY_EXPERIENTIAL_WEIGHTS`,
+    else the cache). The opt-in `lexical_norms_experiential` model emits exactly the
+    columns its weights hold; its prefix nests inside `lexical_norms` (longest match).
+    `scripts/train_experiential.py` builds the weights.
   - `train.py` fits `RidgeCV` regressors on fastText `crawl-300d-2M-subword` vectors to
     extrapolate each norm to arbitrary words; caches fitted models as joblib.
     `NORM_DIMENSIONS` is the single source of truth for norm feature names. Multi-word
