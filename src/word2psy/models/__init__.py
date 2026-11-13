@@ -4,6 +4,7 @@
 def __getattr__(name):
     _registry = {
         "LexicalNormsModel": ".lexical_norms",
+        "LexicalNormsExperientialModel": ".lexical_norms_experiential",
         "WordformModel": ".wordform",
         "FastTextModel": ".fasttext_embed",
         "Word2VecModel": ".word2vec",

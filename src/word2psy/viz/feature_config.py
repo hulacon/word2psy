@@ -77,6 +77,20 @@ _LEXICAL_NORM_FEATURES = [
     "lexical_norms_zipf_frequency",
 ]
 
+# Binder attribute columns, spreadsheet order (word2psy.norms.experiential.COLUMNS);
+# written out so this module imports nothing from the norms package.
+_EXPERIENTIAL_FEATURES = [
+    f"lexical_norms_experiential_{a}"
+    for a in (
+        "vision bright dark color pattern large small motion biomotion fast slow shape "
+        "complexity face body touch temperature texture weight pain audition loud low high "
+        "sound music speech taste smell head upperlimb lowerlimb practice landmark path scene "
+        "near toward away number time duration long short caused consequential social human "
+        "communication self cognition benefit harm pleasant unpleasant happy sad angry "
+        "disgusted fearful surprised drive needs attention arousal"
+    ).split()
+]
+
 _WORDFORM_FEATURES = [
     "wordform_length",
     "wordform_n_syllables",
@@ -126,6 +140,18 @@ FEATURE_CONFIGS: dict[str, FeatureConfig] = {
         column_patterns=list(_LEXICAL_NORM_FEATURES[:12])
         + ["lexical_norms_sensorimotor_*", "lexical_norms_zipf_frequency"],
         scalar_features=list(_LEXICAL_NORM_FEATURES),
+    ),
+    "lexical_norms_experiential": FeatureConfig(
+        name="lexical_norms_experiential",
+        description="Binder et al. (2016) experiential attributes (fastText probe; up to 65)",
+        feature_type="named_distribution",
+        n_dims=len(_EXPERIENTIAL_FEATURES),
+        level="word",
+        timeseries=True,
+        mds_clustering=True,
+        timeseries_mode="top_k",
+        column_patterns=["lexical_norms_experiential_*"],
+        scalar_features=list(_EXPERIENTIAL_FEATURES),
     ),
     "wordform": FeatureConfig(
         name="wordform",

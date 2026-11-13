@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-11-12
+
+### Added
+
+- **`lexical_norms_experiential`** (opt-in word-level model): Binder et al. (2016)'s
+  experiential attributes predicted for any word by one ridge probe per attribute on
+  its fastText `crawl-300d-2M-subword` vector (the same `get_word_vector` path as
+  `lexical_norms`). Columns `lexical_norms_experiential_<attr>`, 0–6 scale, linear and
+  unclipped; chunk aggregates as for every word-level scalar. The model emits exactly
+  the attributes its weights hold, and declares labels for all 65 (the sidecar keeps
+  the emitted ones). The prefix nests inside `lexical_norms`; resolve by longest match.
+- **`word2psy.norms.experiential`**: the probe fit (standardised features, alpha per
+  attribute by 5-fold CV on `logspace(-2, 6, 17)`, standardisation folded into `W` and
+  `b`; each attribute trains on the words that rated it), and the weights file
+  (format 1: `W`, `b`, `columns`, `alpha`, `n_train`, and `trained_on` with the
+  ratings file's sha256). The ratings are user-supplied, so the weights are not
+  package data: `scripts/train_experiential.py --ratings … [--attributes keep.txt]`
+  builds them into `$WORD2PSY_EXPERIENTIAL_WEIGHTS` or the cache, and `load()`
+  without them raises `NormDataError` naming how.
+
 ## [0.13.0] - 2026-11-12
 
 ### Added
